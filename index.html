@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Inventory Pro - Modern Inventory Management System">
+    <meta name="theme-color" content="#4361ee">
+    <title>RTI - Inventory System</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login View -->
+        <div id="login-view" class="view" role="main" aria-label="Login">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="logo-section">
+                        <i class="fas fa-boxes logo-icon" aria-hidden="true"></i>
+                        <h1>RTI - Inventory</h1>
+                        <p class="subtitle">Sign in to manage your inventory</p>
+                    </div>
+                    <form id="login-form" novalidate>
+                        <div class="form-group">
+                            <label for="username">
+                                <i class="fas fa-envelope" aria-hidden="true"></i>
+                                Email
+                            </label>
+                            <input type="email" id="username" class="form-control" required autocomplete="email" autofocus>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">
+                                <i class="fas fa-lock" aria-hidden="true"></i>
+                                Password
+                            </label>
+                            <input type="password" id="password" class="form-control" required autocomplete="current-password">
+                        </div>
+                        <div id="login-error" class="error-message" role="alert"></div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                            Sign In
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view" role="main" aria-label="Dashboard">
+            <div class="dashboard-container">
+                <!-- Sidebar Overlay for mobile -->
+                <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+                <!-- Sidebar -->
+                <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation">
+                    <div class="sidebar-header">
+                        <i class="fas fa-boxes" aria-hidden="true"></i>
+                        <h2>RTI - Inventory</h2>
+                    </div>
+                    <div class="user-info">
+                        <div class="avatar">
+                            <i class="fas fa-user-circle" aria-hidden="true"></i>
+                        </div>
+                        <div class="user-details">
+                            <h4 id="user-name">System Administrator</h4>
+                            <span id="user-role">Admin</span>
+                        </div>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <div class="nav-section">
+                            <span class="nav-section-title">MAIN MENU</span>
+                            <button class="nav-item active" data-view="dashboard" aria-current="page">
+                                <i class="fas fa-home" aria-hidden="true"></i>
+                                <span>Dashboard</span>
+                            </button>
+                            <button class="nav-item" data-view="products">
+                                <i class="fas fa-box" aria-hidden="true"></i>
+                                <span>Products</span>
+                            </button>
+                            <button class="nav-item" data-view="categories">
+                                <i class="fas fa-tags" aria-hidden="true"></i>
+                                <span>Categories</span>
+                            </button>
+                            <button class="nav-item" data-view="buildings">
+                                <i class="fas fa-building" aria-hidden="true"></i>
+                                <span>Buildings</span>
+                            </button>
+                            <button class="nav-item" data-view="stock">
+                                <i class="fas fa-exchange-alt" aria-hidden="true"></i>
+                                <span>Stock</span>
+                            </button>
+                            <button class="nav-item" data-view="reports">
+                                <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                                <span>Reports</span>
+                            </button>
+                            <button class="nav-item" data-view="profile">
+                                <i class="fas fa-user" aria-hidden="true"></i>
+                                <span>Profile</span>
+                            </button>
+                        </div>
+                    </nav>
+                    <div class="sidebar-footer">
+                        <button id="logout-btn" class="btn-logout">
+                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                            Logout
+                        </button>
+                        <p class="version">Version 1.0.0</p>
+                    </div>
+                </aside>
+                <!-- Main Content -->
+                <main id="main-content" class="main-content">
+                    <!-- Dashboard Home Section -->
+                    <section id="dashboard-home" class="content-section active" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Dashboard</h1>
+                            <div class="datetime-display">
+                                <div id="current-date" class="date-display"></div>
+                                <div id="current-time" class="time-display"></div>
+                            </div>
+                        </div>
+                        <div id="dashboard-error" class="error-message" role="alert"></div>
+                        <div id="stats-container" class="stats-grid" role="region" aria-label="Statistics"></div>
+                        <div class="dashboard-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-history" aria-hidden="true"></i> Recent Stock Movements</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-movements"></div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class=" " aria-hidden="true"></i> Products by Stock</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="top-products"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Products Section -->
+                    <section id="products-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Products Management</h1>
+                            <div class="header-buttons">
+                                <button id="toggle-archived" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-archive" aria-hidden="true"></i>
+                                    Show Archived
+                                </button>
+                                <button onclick="showProductModal()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    Add Product
+                                </button>
+                            </div>
+                        </div>
+                        <div id="products-error" class="error-message" role="alert"></div>
+                        <div class="search-bar">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="text" id="product-search" placeholder="Search by Name, Code... (Press Ctrl+K to focus)" aria-label="Search products">
+                            <button id="clear-search" class="btn-clear-search" aria-label="Clear search">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="table-container">
+                            <table role="table" aria-label="Products list">
+                                <thead>
+                                    <tr role="row">
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Code</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Category</th>
+                                        <th scope="col">Building</th>
+                                        <th scope="col">Assigned to</th>
+                                        <th scope="col">Condition</th>
+                                        <th scope="col">Stock</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-list"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                    <!-- Categories Section -->
+                    <section id="categories-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Categories Management</h1>
+                            <button onclick="showCategoryModal()" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                Add Category
+                            </button>
+                        </div>
+                        <div id="categories-error" class="error-message" role="alert"></div>
+                        <div class="table-container">
+                            <table role="table" aria-label="Categories list">
+                                <thead>
+                                    <tr role="row">
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Description</th>
+                                        <th scope="col">Created</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="categories-list"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                    <!-- Buildings Section -->
+                    <section id="buildings-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Buildings Management</h1>
+                            <button onclick="showBuildingModal()" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                Add Building
+                            </button>
+                        </div>
+                        <div id="buildings-error" class="error-message" role="alert"></div>
+                        <div class="table-container">
+                            <table role="table" aria-label="Buildings list">
+                                <thead>
+                                    <tr role="row">
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Address</th>
+                                        <th scope="col">Created</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="buildings-list"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                    <!-- Stock Section -->
+                    <section id="stock-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Stock Management</h1>
+                        </div>
+                        <div id="stock-error" class="error-message" role="alert"></div>
+                        <div class="stock-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-exchange-alt" aria-hidden="true"></i> Stock Adjustment</h3>
+                                </div>
+                                <div class="card-body">
+                                    <form id="stock-form" novalidate>
+                                        <div class="form-group">
+                                            <label for="stock-product">Select Product</label>
+                                            <select id="stock-product" class="form-control" required>
+                                                <option value="">Select a product...</option>
+                                            </select>
+                                        </div>
+                                        <div id="stock-info" class="info-card" style="display: none;">
+                                            <h4 id="current-stock">Current Stock: 0</h4>
+                                            <p id="reorder-level">Reorder Level: 0</p>
+                                        </div>
+                                        <div id="stock-warning" class="warning-message" role="alert"></div>
+                                        <div class="btn-group" role="group" aria-label="Stock movement type">
+                                            <div class="btn-type active" data-type="IN" role="radio" aria-checked="true" tabindex="0">
+                                                <i class="fas fa-arrow-down" aria-hidden="true"></i> IN
+                                            </div>
+                                            <div class="btn-type" data-type="OUT" role="radio" aria-checked="false" tabindex="0">
+                                                <i class="fas fa-arrow-up" aria-hidden="true"></i> OUT
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="stock-quantity">Quantity</label>
+                                            <input type="number" id="stock-quantity" class="form-control" min="1" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="stock-reference">Code</label>
+                                            <input type="text" id="stock-reference" class="form-control" placeholder="Please enter a reference code (e.g., RTI-MB-2026-123456)" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="stock-notes">Notes</label>
+                                            <textarea id="stock-notes" class="form-control" rows="3" placeholder="Please enter a notes"></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block">
+                                            <i class="fas fa-check" aria-hidden="true"></i>
+                                            Apply Adjustment
+                                        </button>
+                                        <button type="button" onclick="clearStockForm()" class="btn btn-secondary btn-block" style="margin-top: 10px;">
+                                            <i class="fas fa-undo" aria-hidden="true"></i>
+                                            Clear Form
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-history" aria-hidden="true"></i> Stock Movement History</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="filter-bar">
+                                        <label for="movement-filter">Show:</label>
+                                        <select id="movement-filter">
+                                            <option value="all">All Products</option>
+                                            <option value="current">Current Product Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="table-container">
+                                        <table role="table" aria-label="Movement history">
+                                            <thead>
+                                                <tr role="row">
+                                                    <th scope="col">Date</th>
+                                                    <th scope="col">Product</th>
+                                                    <th scope="col">Type</th>
+                                                    <th scope="col">Quantity</th>
+                                                    <th scope="col">Code</th>
+                                                    <th scope="col">Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="movements-list"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Reports Section -->
+                    <section id="reports-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">Reports & Analytics</h1>
+                        </div>
+                        <div class="reports-grid">
+                            <div class="report-card" onclick="showReport('stock-summary')" role="button" tabindex="0" aria-label="Generate stock summary report">
+                                <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                                <h3>Stock Summary</h3>
+                                <p>Current stock levels for all products</p>
+                            </div>
+                            
+                            <div class="report-card" onclick="showReport('category-analysis')" role="button" tabindex="0" aria-label="Generate category analysis report">
+                                <i class="fas fa-tags" aria-hidden="true"></i>
+                                <h3>Category Analysis</h3>
+                                <p>Stock distribution by category</p>
+                            </div>
+                            <div class="report-card" onclick="showReport('building-analysis')" role="button" tabindex="0" aria-label="Generate building analysis report">
+                                <i class="fas fa-building" aria-hidden="true"></i>
+                                <h3>Building Analysis</h3>
+                                <p>Products grouped by building</p>
+                            </div>
+                            <div class="report-card" onclick="showReport('movement-history')" role="button" tabindex="0" aria-label="Generate movement history report">
+                                <i class="fas fa-history" aria-hidden="true"></i>
+                                <h3>Movement History</h3>
+                                <p>Stock movement timeline</p>
+                            </div>
+                        </div>
+                        <div id="report-results" class="report-results" style="display: none;">
+                            <h2 id="report-title">Report</h2>
+                            <div id="report-content"></div>
+                        </div>
+                    </section>
+                    <!-- Profile Section -->
+                    <section id="profile-view" class="content-section" aria-labelledby="page-title">
+                        <div class="content-header">
+                            <h1 id="page-title" class="page-title">User Profile</h1>
+                        </div>
+                        <div class="profile-container">
+                            <div class="profile-header">
+                                <div class="profile-avatar">
+                                    <i class="fas fa-user-circle" aria-hidden="true"></i>
+                                </div>
+                                <div class="profile-info">
+                                    <h2 id="profile-fullname">User Name</h2>
+                                    <p id="profile-username">user@example.com</p>
+                                    <span id="profile-role" class="profile-role">User</span>
+                                </div>
+                            </div>
+                            <div class="password-section">
+                                <h3><i class="fas fa-key" aria-hidden="true"></i> Change Password</h3>
+                                <form id="password-form" novalidate>
+                                    <div class="form-group">
+                                        <label for="current-password">Current Password</label>
+                                        <input type="password" id="current-password" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="new-password">New Password</label>
+                                        <input type="password" id="new-password" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirm-password">Confirm New Password</label>
+                                        <input type="password" id="confirm-password" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save" aria-hidden="true"></i>
+                                        Change Password
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        </div>
+        <!-- Product Modal -->
+        <div id="product-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Add Product</h2>
+                    <button class="close-btn" onclick="closeModal('product-modal')" aria-label="Close modal">&times;</button>
+                </div>
+                <form id="product-form" novalidate>
+
+                    <div class="modal-body">
+                        <input type="hidden" id="product-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="product-sku">Code <span aria-label="required">*</span></label>
+                                <input type="text" id="product-sku" class="form-control" required pattern="^[A-Z0-9_-]+$">
+                            </div>
+                            <div class="form-group">
+                                <label for="product-name">Product Name <span aria-label="required">*</span></label>
+                                <input type="text" id="product-name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-description">Description <span aria-label="required">*</span></label>
+                            <textarea id="product-description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="product-category">Category <span aria-label="required">*</span></label>
+                                <select id="product-category" class="form-control">
+                                    <option value="">Select Category...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="product-building">Building <span aria-label="required">*</span></label>
+                                <select id="product-building" class="form-control">
+                                    <option value="">Select Building...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- New Assigned Field -->
+                        <div class="form-group">
+                            <label for="product-assigned">Assigned To <span aria-label="required">*</span></label>
+                            <input type="text" id="product-assigned" class="form-control" placeholder="">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="product-condition">Condition <span aria-label="required">*</span></label>
+                            <select id="product-condition" class="form-control" required>
+                                <option value="working-in storage">Working - in storage</option>
+                                <option value="working-assigned">Working - assigned</option>
+                                <option value="defective">Defective</option>
+                                <option value="damaged">Damaged</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-stock">Initial Stock <span aria-label="required">*</span></label>
+                            <input type="number" id="product-stock" class="form-control" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save" aria-hidden="true"></i>
+                            Save Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Category Modal -->
+        <div id="category-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="category-modal-title">Add Category</h2>
+                    <button class="close-btn" onclick="closeModal('category-modal')" aria-label="Close modal">&times;</button>
+                </div>
+                <form id="category-form" novalidate>
+                    <div class="modal-body">
+                        <input type="hidden" id="category-id">
+                        <div class="form-group">
+                            <label for="category-name">Category Name <span aria-label="required">*</span></label>
+                            <input type="text" id="category-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="category-description">Description</label>
+                            <textarea id="category-description" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('category-modal')">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save" aria-hidden="true"></i>
+                            Save Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Building Modal -->
+        <div id="building-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="building-modal-title">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="building-modal-title">Add Building</h2>
+                    <button class="close-btn" onclick="closeModal('building-modal')" aria-label="Close modal">&times;</button>
+                </div>
+                <form id="building-form" novalidate>
+                    <div class="modal-body">
+                        <input type="hidden" id="building-id">
+                        <div class="form-group">
+                            <label for="building-name">Building Name <span aria-label="required">*</span></label>
+                            <input type="text" id="building-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="building-address">Address</label>
+                            <textarea id="building-address" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('building-modal')">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save" aria-hidden="true"></i>
+                            Save Building
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Register Modal -->
+        <div id="register-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="register-modal-title">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="register-modal-title">Register New Account</h2>
+                    <button class="close-btn" onclick="closeModal('register-modal')" aria-label="Close modal">&times;</button>
+                </div>
+                <form id="register-form" novalidate>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="reg-fullname">Full Name <span aria-label="required">*</span></label>
+                            <input type="text" id="reg-fullname" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-email">Email <span aria-label="required">*</span></label>
+                            <input type="email" id="reg-email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-password">Password <span aria-label="required">*</span></label>
+                            <input type="password" id="reg-password" class="form-control" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-confirm-password">Confirm Password <span aria-label="required">*</span></label>
+                            <input type="password" id="reg-confirm-password" class="form-control" required minlength="6">
+                        </div>
+                        <div id="register-error" class="error-message" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('register-modal')">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i>
+                            Register
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" aria-live="polite" aria-busy="true">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner" aria-hidden="true"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+    <!-- Application Scripts -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
