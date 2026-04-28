@@ -731,7 +731,7 @@ renderProductsTable(products, highlightedId = null) {
     if (!tbody) return;
     
     if (!products?.length) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</td>';
         return;
     }
     
@@ -772,7 +772,7 @@ renderProductsTable(products, highlightedId = null) {
 
 async searchProducts(term) {
     try {
-        UIManager.showLoading();
+        // REMOVED LOADING SPINNER: UIManager.showLoading();
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
@@ -827,7 +827,7 @@ async searchProducts(term) {
         UIManager.showError('products-error', 'Search failed');
         Utils.showNotification('Search failed: ' + error.message, 'error');
     } finally {
-        UIManager.hideLoading();
+        // REMOVED LOADING SPINNER: UIManager.hideLoading();
     }
 },
 
@@ -1083,20 +1083,20 @@ renderCategoriesTable(categories) {
     if (!tbody) return;
     
     if (!categories?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</th></tr>';
         return;
     }
     
     tbody.innerHTML = categories.map(c => `
         <tr>
             <td><strong>${Utils.escapeHtml(String(c.id))}</strong></td>
-            <td>${Utils.escapeHtml(c.name)}</td>
-            <td>${Utils.escapeHtml(c.description || '')}</td>
-            <td>${Utils.formatDate(c.created_at)}</td>
+            <td>${Utils.escapeHtml(c.name)}</th>
+            <td>${Utils.escapeHtml(c.description || '')}</th>
+            <td>${Utils.formatDate(c.created_at)}</th>
             <td>
                 <button class="action-btn btn-edit" onclick="window.editCategory(${c.id})"><i class="fas fa-edit"></i></button>
                 <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
-            </td>
+            </th>
         </tr>
     `).join('');
 },
@@ -1209,20 +1209,20 @@ renderBuildingsTable(buildings) {
     if (!tbody) return;
     
     if (!buildings?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No buildings</td></tr>';
+        tbody.innerHTML = '</table><td colspan="5" style="text-align:center">No buildings</th></tr>';
         return;
     }
     
     tbody.innerHTML = buildings.map(b => `
         <tr>
             <td><strong>${Utils.escapeHtml(String(b.id))}</strong></td>
-            <td>${Utils.escapeHtml(b.name)}</td>
-            <td>${Utils.escapeHtml(b.location_address || '')}</td>
-            <td>${Utils.formatDate(b.created_at)}</td>
+            <td>${Utils.escapeHtml(b.name)}</th>
+            <td>${Utils.escapeHtml(b.location_address || '')}</th>
+            <td>${Utils.formatDate(b.created_at)}</th>
             <td>
                 <button class="action-btn btn-edit" onclick="window.editBuilding(${b.id})"><i class="fas fa-edit"></i></button>
                 <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})"><i class="fas fa-trash"></i></button>
-            </td>
+            </th>
         </tr>
     `).join('');
 },
@@ -1366,18 +1366,18 @@ renderMovementsTable(movements) {
     if (!tbody) return;
     
     if (!movements?.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</th></tr>';
         return;
     }
     
     tbody.innerHTML = movements.map(m => `
         <tr>
-            <td>${Utils.formatDateTime(m.created_at)}</td>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
-            <td>${m.quantity}</td>
-            <td>${Utils.escapeHtml(m.reference || '')}</td>
-            <td>${Utils.escapeHtml(m.notes || '')}</td>
+            <td>${Utils.formatDateTime(m.created_at)}</th>
+            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
+            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
+            <td>${m.quantity}</th>
+            <td>${Utils.escapeHtml(m.reference || '')}</th>
+            <td>${Utils.escapeHtml(m.notes || '')}</th>
         </tr>
     `).join('');
 },
@@ -1556,19 +1556,19 @@ async showStockSummary(container) {
         const status = stock > 0 ? 'OK' : 'OUT OF STOCK';
         html += `
             <tr>
-                <td>${p.id}</td>
-                <td>${Utils.escapeHtml(p.sku || '-')}</td>
-                <td><strong>${Utils.escapeHtml(p.name)}</strong></td>
-                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
-                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
-                <td>${Utils.getConditionBadge(p.condition)}</td>
-                <td style="color: ${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</td>
-                <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></td>
+                <td>${p.id}</th>
+                <td>${Utils.escapeHtml(p.sku || '-')}</th>
+                <td><strong>${Utils.escapeHtml(p.name)}</strong></th>
+                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</th>
+                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</th>
+                <td>${Utils.getConditionBadge(p.condition)}</th>
+                <td style="color: ${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</th>
+                <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></th>
             </tr>
         `;
     });
     
-    html += '</tbody></table></div>';
+    html += '</tbody> </table></div>';
     container.innerHTML = html;
 },
 
@@ -1583,10 +1583,10 @@ async showCategoryAnalysis(container) {
     (categories || []).forEach(c => {
         const products = c.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${c.id}</td><td><strong>${Utils.escapeHtml(c.name)}</strong></td><td>${products.length}</td><td>${totalUnits}</td></tr>`;
+        html += `<tr><td>${c.id}</th><td><strong>${Utils.escapeHtml(c.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
     });
     
-    html += '</tbody></table></div>';
+    html += '</tbody> </table></div>';
     container.innerHTML = html;
 },
 
@@ -1601,10 +1601,10 @@ async showBuildingAnalysis(container) {
     (buildings || []).forEach(b => {
         const products = b.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${b.id}</td><td><strong>${Utils.escapeHtml(b.name)}</strong></td><td>${products.length}</td><td>${totalUnits}</td></tr>`;
+        html += `<tr><td>${b.id}</th><td><strong>${Utils.escapeHtml(b.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
     });
     
-    html += '</tbody></table></div>';
+    html += '</tbody> </table></div>';
     container.innerHTML = html;
 },
 
@@ -1625,15 +1625,15 @@ async showMovementHistory(container) {
     
     data.forEach(m => {
         html += `<tr>
-            <td>${Utils.formatDateTime(m.created_at)}</td>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
-            <td>${m.quantity}</td>
-            <td>${Utils.escapeHtml(m.reference || '-')}</td>
+            <td>${Utils.formatDateTime(m.created_at)}</th>
+            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
+            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
+            <td>${m.quantity}</th>
+            <td>${Utils.escapeHtml(m.reference || '-')}</th>
         </tr>`;
     });
     
-    html += '</tbody></table></div>';
+    html += '</tbody> </table></div>';
     container.innerHTML = html;
 }
 };
