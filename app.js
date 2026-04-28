@@ -1601,10 +1601,7 @@ async showStockSummary(container) {
     
     let html = `
         <div class="stats-grid" style="margin-bottom:20px;">
-            <div class="stat-card">
-                <div class="stat-value">${stats.total_products}</div>
-                <div class="stat-title">Total Products</div>
-            </div>
+            
             <div class="stat-card">
                 <div class="stat-value">${stats.total_items}</div>
                 <div class="stat-title">Total Items</div>
