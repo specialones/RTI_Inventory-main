@@ -8,6 +8,8 @@ Features:
 - ID filtering 1-1000 range
 - Reorder level removed
 - Product Condition field
+- Category filter in search bar (use "category:" prefix)
+- Stock adjustment shows only defective products
 */
 'use strict';
 // ============================================================================
@@ -731,7 +733,7 @@ renderProductsTable(products, highlightedId = null) {
     if (!tbody) return;
     
     if (!products?.length) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</td>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</th></tr>';
         return;
     }
     
@@ -748,15 +750,15 @@ renderProductsTable(products, highlightedId = null) {
         
         return `
             <tr class="${highlightClass} ${archivedClass}" data-product-id="${p.id}">
-                <td><strong>${Utils.escapeHtml(String(p.id))}</strong>${isArchived ? '<span class="archived-badge">Archived</span>' : ''}</td>
-                <td>${Utils.escapeHtml(p.sku || '')}</td>
-                <td>${Utils.escapeHtml(p.name || '')}${isArchived ? ' [DELETED]' : ''}</td>
-                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
-                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
-                <td>${assignedTo}</td>
-                <td>${Utils.getConditionBadge(p.condition)}</td>
-                <td>${stock}</td>
-                <td>${status}</td>
+                <td><strong>${Utils.escapeHtml(String(p.id))}</strong>${isArchived ? '<span class="archived-badge">Archived</span>' : ''}</th>
+                <td>${Utils.escapeHtml(p.sku || '')}</th>
+                <td>${Utils.escapeHtml(p.name || '')}${isArchived ? ' [DELETED]' : ''}</th>
+                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</th>
+                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</th>
+                <td>${assignedTo}</th>
+                <td>${Utils.getConditionBadge(p.condition)}</th>
+                <td>${stock}</th>
+                <td>${status}</th>
                 <td>
                     <button class="action-btn btn-edit" onclick="window.editProduct(${p.id})" ${isArchived ? 'disabled style="opacity:0.5"' : ''}>
                         <i class="fas fa-edit"></i>
@@ -764,7 +766,7 @@ renderProductsTable(products, highlightedId = null) {
                     <button class="action-btn btn-delete" onclick="window.deleteProduct(${p.id})">
                         <i class="fas ${isArchived ? 'fa-trash-restore' : 'fa-trash'}"></i>
                     </button>
-                </td>
+                 </th>
             </tr>
         `;
     }).join('');
@@ -782,6 +784,15 @@ async searchProducts(term) {
         }
         
         const search = term.trim().toLowerCase();
+        
+        // Check for category filter syntax: "category:CategoryName"
+        const categoryMatch = search.match(/^category:\s*(.+)$/i);
+        if (categoryMatch) {
+            const categoryName = categoryMatch[1].trim();
+            await this.filterProductsByCategory(categoryName);
+            return;
+        }
+        
         const isNumericSearch = /^\d+$/.test(search);
         
         let query = supabase
@@ -828,6 +839,45 @@ async searchProducts(term) {
         Utils.showNotification('Search failed: ' + error.message, 'error');
     } finally {
         // REMOVED LOADING SPINNER: UIManager.hideLoading();
+    }
+},
+
+// New method to filter products by category name
+async filterProductsByCategory(categoryName) {
+    try {
+        const supabase = window.getSupabaseClient();
+        if (!supabase) throw new Error('Database unavailable');
+        
+        let query = supabase
+            .from(TABLES.PRODUCTS)
+            .select(`
+                *,
+                categories:category_id(name),
+                buildings:building_id(name)
+            `);
+        
+        if (!AppState.showArchived) {
+            query = query.eq('is_active', true);
+        }
+        
+        // Filter by category name using a join filter
+        query = query.filter('categories.name', 'ilike', `%${categoryName}%`);
+        
+        const { data, error } = await query.order('id', { ascending: true });
+        
+        if (error) throw error;
+        
+        this.renderProductsTable(data || []);
+        
+        if (data?.length === 0) {
+            Utils.showNotification(`No products found in category matching "${categoryName}"`, 'info');
+        } else {
+            Utils.showNotification(`Found ${data.length} product(s) in category matching "${categoryName}"`, 'success');
+        }
+    } catch (error) {
+        console.error('Category filter failed:', error);
+        Utils.showNotification('Category filter failed: ' + error.message, 'error');
+        this.renderProductsTable([]);
     }
 },
 
@@ -1089,7 +1139,7 @@ renderCategoriesTable(categories) {
     
     tbody.innerHTML = categories.map(c => `
         <tr>
-            <td><strong>${Utils.escapeHtml(String(c.id))}</strong></td>
+            <td><strong>${Utils.escapeHtml(String(c.id))}</strong></th>
             <td>${Utils.escapeHtml(c.name)}</th>
             <td>${Utils.escapeHtml(c.description || '')}</th>
             <td>${Utils.formatDate(c.created_at)}</th>
@@ -1209,13 +1259,13 @@ renderBuildingsTable(buildings) {
     if (!tbody) return;
     
     if (!buildings?.length) {
-        tbody.innerHTML = '</table><td colspan="5" style="text-align:center">No buildings</th></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No buildings</th></tr>';
         return;
     }
     
     tbody.innerHTML = buildings.map(b => `
         <tr>
-            <td><strong>${Utils.escapeHtml(String(b.id))}</strong></td>
+            <td><strong>${Utils.escapeHtml(String(b.id))}</strong></th>
             <td>${Utils.escapeHtml(b.name)}</th>
             <td>${Utils.escapeHtml(b.location_address || '')}</th>
             <td>${Utils.formatDate(b.created_at)}</th>
@@ -1314,16 +1364,31 @@ async loadStockView() {
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
+        // Filter to show only defective products for stock adjustment
         const { data, error } = await supabase
             .from(TABLES.PRODUCTS)
-            .select('id, name, stock_quantity')
+            .select('id, name, stock_quantity, condition')
             .eq('is_active', true)
+            .ilike('condition', '%defective%')
             .order('id', { ascending: true });
             
         if (error) throw error;
         AppState.products = data || [];
         this.populateProductSelect(AppState.products);
         await this.loadAllMovements();
+        
+        // Add info message about defective filter
+        const stockContainer = document.getElementById('stock-view');
+        if (stockContainer && !document.getElementById('stock-filter-info')) {
+            const infoDiv = document.createElement('div');
+            infoDiv.id = 'stock-filter-info';
+            infoDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;';
+            infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Note:</strong> Only products marked as "Defective" are shown in this stock adjustment section.';
+            const formElement = document.getElementById('stock-form');
+            if (formElement && formElement.parentNode) {
+                formElement.parentNode.insertBefore(infoDiv, formElement);
+            }
+        }
     } catch (error) {
         console.error('Stock view load failed:', error);
         UIManager.showError('stock-error', 'Failed to load stock view');
@@ -1336,7 +1401,12 @@ populateProductSelect(products) {
     const select = document.getElementById('stock-product');
     if (!select) return;
     
-    select.innerHTML = '<option value="">Select product...</option>' +
+    if (!products || products.length === 0) {
+        select.innerHTML = '<option value="">No defective products found</option>';
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Select defective product...</option>' +
         products.map(p => {
             const status = (p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : '';
             return `<option value="${p.id}">ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})${status}</option>`;
@@ -1578,15 +1648,20 @@ async showCategoryAnalysis(container) {
         .from(TABLES.CATEGORIES)
         .select('*, products:products(id, stock_quantity)');
     
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Products</th><th>Total Units</th></tr></thead><tbody>';
+    // Simplified table: only ID, Category Name, and Total Units (removed Products count)
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Total Units</th></tr></thead><tbody>';
     
     (categories || []).forEach(c => {
         const products = c.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${c.id}</th><td><strong>${Utils.escapeHtml(c.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
+        html += `<tr>
+            <td>${c.id}</td>
+            <td><strong>${Utils.escapeHtml(c.name)}</strong></td>
+            <td>${totalUnits}</td>
+        </tr>`;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody> <tr></div>';
     container.innerHTML = html;
 },
 
@@ -1596,12 +1671,17 @@ async showBuildingAnalysis(container) {
         .from(TABLES.BUILDINGS)
         .select('*, products:products(id, stock_quantity)');
     
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Products</th><th>Total Units</th></tr></thead><tbody>';
+    // Simplified table: only ID, Building Name, and Total Units
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total Units</th></tr></thead><tbody>';
     
     (buildings || []).forEach(b => {
         const products = b.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${b.id}</th><td><strong>${Utils.escapeHtml(b.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
+        html += `<tr>
+            <td>${b.id}</td>
+            <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
+            <td>${totalUnits}</td>
+        </tr>`;
     });
     
     html += '</tbody> </table></div>';
@@ -1633,7 +1713,7 @@ async showMovementHistory(container) {
         </tr>`;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody> <tr></div>';
     container.innerHTML = html;
 }
 };
@@ -1741,6 +1821,8 @@ bindEvents() {
     
     const search = document.getElementById('product-search');
     if (search) {
+        // Add placeholder hint for category search
+        search.placeholder = "Search by ID, name, SKU, or 'category:CategoryName'...";
         const debouncedSearch = Utils.debounce(async e => {
             await DataService.searchProducts(e.target.value);
         }, 300);
