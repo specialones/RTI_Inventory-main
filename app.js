@@ -731,7 +731,7 @@ renderProductsTable(products, highlightedId = null) {
     if (!tbody) return;
     
     if (!products?.length) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center">No products found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</tr>';
         return;
     }
     
@@ -744,6 +744,7 @@ renderProductsTable(products, highlightedId = null) {
         
         const highlightClass = highlightedId === p.id ? 'highlight-row' : '';
         const archivedClass = isArchived ? 'product-archived' : '';
+        const assignedTo = p.assigned_to ? Utils.escapeHtml(p.assigned_to) : '—';
         
         return `
             <tr class="${highlightClass} ${archivedClass}" data-product-id="${p.id}">
@@ -752,6 +753,7 @@ renderProductsTable(products, highlightedId = null) {
                 <td>${Utils.escapeHtml(p.name || '')}${isArchived ? ' [DELETED]' : ''}</td>
                 <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
                 <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
+                <td>${assignedTo}</td>
                 <td>${Utils.getConditionBadge(p.condition)}</td>
                 <td>${stock}</td>
                 <td>${status}</td>
@@ -770,7 +772,7 @@ renderProductsTable(products, highlightedId = null) {
 
 async searchProducts(term) {
     try {
-        // REMOVED: UIManager.showLoading(); - No loading spinner for search
+        UIManager.showLoading();
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
@@ -825,7 +827,7 @@ async searchProducts(term) {
         UIManager.showError('products-error', 'Search failed');
         Utils.showNotification('Search failed: ' + error.message, 'error');
     } finally {
-        // REMOVED: UIManager.hideLoading(); - No loading spinner for search
+        UIManager.hideLoading();
     }
 },
 
@@ -1081,20 +1083,20 @@ renderCategoriesTable(categories) {
     if (!tbody) return;
     
     if (!categories?.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</th></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</td></tr>';
         return;
     }
     
     tbody.innerHTML = categories.map(c => `
         <tr>
             <td><strong>${Utils.escapeHtml(String(c.id))}</strong></td>
-            <td>${Utils.escapeHtml(c.name)}</th>
-            <td>${Utils.escapeHtml(c.description || '')}</th>
-            <td>${Utils.formatDate(c.created_at)}</th>
+            <td>${Utils.escapeHtml(c.name)}</td>
+            <td>${Utils.escapeHtml(c.description || '')}</td>
+            <td>${Utils.formatDate(c.created_at)}</td>
             <td>
                 <button class="action-btn btn-edit" onclick="window.editCategory(${c.id})"><i class="fas fa-edit"></i></button>
                 <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
-            </th>
+            </td>
         </tr>
     `).join('');
 },
@@ -1207,20 +1209,20 @@ renderBuildingsTable(buildings) {
     if (!tbody) return;
     
     if (!buildings?.length) {
-        tbody.innerHTML = '<table><td colspan="5" style="text-align:center">No buildings</th></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No buildings</td></tr>';
         return;
     }
     
     tbody.innerHTML = buildings.map(b => `
         <tr>
             <td><strong>${Utils.escapeHtml(String(b.id))}</strong></td>
-            <td>${Utils.escapeHtml(b.name)}</th>
-            <td>${Utils.escapeHtml(b.location_address || '')}</th>
-            <td>${Utils.formatDate(b.created_at)}</th>
+            <td>${Utils.escapeHtml(b.name)}</td>
+            <td>${Utils.escapeHtml(b.location_address || '')}</td>
+            <td>${Utils.formatDate(b.created_at)}</td>
             <td>
                 <button class="action-btn btn-edit" onclick="window.editBuilding(${b.id})"><i class="fas fa-edit"></i></button>
                 <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})"><i class="fas fa-trash"></i></button>
-            </th>
+            </td>
         </tr>
     `).join('');
 },
@@ -1364,18 +1366,18 @@ renderMovementsTable(movements) {
     if (!tbody) return;
     
     if (!movements?.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</th></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</td></tr>';
         return;
     }
     
     tbody.innerHTML = movements.map(m => `
         <tr>
-            <td>${Utils.formatDateTime(m.created_at)}</th>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
-            <td>${m.quantity}</th>
-            <td>${Utils.escapeHtml(m.reference || '')}</th>
-            <td>${Utils.escapeHtml(m.notes || '')}</th>
+            <td>${Utils.formatDateTime(m.created_at)}</td>
+            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
+            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
+            <td>${m.quantity}</td>
+            <td>${Utils.escapeHtml(m.reference || '')}</td>
+            <td>${Utils.escapeHtml(m.notes || '')}</td>
         </tr>
     `).join('');
 },
@@ -1554,19 +1556,19 @@ async showStockSummary(container) {
         const status = stock > 0 ? 'OK' : 'OUT OF STOCK';
         html += `
             <tr>
-                <td>${p.id}</th>
-                <td>${Utils.escapeHtml(p.sku || '-')}</th>
-                <td><strong>${Utils.escapeHtml(p.name)}</strong></th>
-                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</th>
-                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</th>
-                <td>${Utils.getConditionBadge(p.condition)}</th>
-                <td style="color: ${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</th>
-                <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></th>
+                <td>${p.id}</td>
+                <td>${Utils.escapeHtml(p.sku || '-')}</td>
+                <td><strong>${Utils.escapeHtml(p.name)}</strong></td>
+                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
+                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
+                <td>${Utils.getConditionBadge(p.condition)}</td>
+                <td style="color: ${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</td>
+                <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></td>
             </tr>
         `;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 },
 
@@ -1581,10 +1583,10 @@ async showCategoryAnalysis(container) {
     (categories || []).forEach(c => {
         const products = c.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${c.id}</th><td><strong>${Utils.escapeHtml(c.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
+        html += `<tr><td>${c.id}</td><td><strong>${Utils.escapeHtml(c.name)}</strong></td><td>${products.length}</td><td>${totalUnits}</td></tr>`;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 },
 
@@ -1599,10 +1601,10 @@ async showBuildingAnalysis(container) {
     (buildings || []).forEach(b => {
         const products = b.products || [];
         const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-        html += `<tr><td>${b.id}</th><td><strong>${Utils.escapeHtml(b.name)}</strong></th><td>${products.length}</th><td>${totalUnits}</th></tr>`;
+        html += `<tr><td>${b.id}</td><td><strong>${Utils.escapeHtml(b.name)}</strong></td><td>${products.length}</td><td>${totalUnits}</td></tr>`;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 },
 
@@ -1623,15 +1625,15 @@ async showMovementHistory(container) {
     
     data.forEach(m => {
         html += `<tr>
-            <td>${Utils.formatDateTime(m.created_at)}</th>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
-            <td>${m.quantity}</th>
-            <td>${Utils.escapeHtml(m.reference || '-')}</th>
+            <td>${Utils.formatDateTime(m.created_at)}</td>
+            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
+            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
+            <td>${m.quantity}</td>
+            <td>${Utils.escapeHtml(m.reference || '-')}</td>
         </tr>`;
     });
     
-    html += '</tbody> </table></div>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 }
 };
@@ -2056,6 +2058,7 @@ async showProductModal(id = null) {
                 document.getElementById('product-building').value = data.building_id || '';
                 document.getElementById('product-stock').value = data.stock_quantity || 0;
                 document.getElementById('product-condition').value = data.condition || PRODUCT_CONDITIONS.DEFAULT;
+                document.getElementById('product-assigned').value = data.assigned_to || '';
             }
         } catch (err) {
             console.error('Load product failed:', err);
@@ -2069,6 +2072,7 @@ async showProductModal(id = null) {
         document.getElementById('product-id').value = '';
         document.getElementById('product-stock').value = '0';
         document.getElementById('product-condition').value = PRODUCT_CONDITIONS.DEFAULT;
+        document.getElementById('product-assigned').value = '';
         
         const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
         
@@ -2077,7 +2081,7 @@ async showProductModal(id = null) {
         
         const infoMsg = document.createElement('div');
         infoMsg.className = 'id-info';
-        infoMsg.style.cssText = 'background:#e3f2fd;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
+        infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
         
         if (nextId) {
             infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId}`;
@@ -2106,7 +2110,9 @@ async handleProductSave(e) {
         category_id: Utils.parseInteger(document.getElementById('product-category')?.value) || null,
         building_id: Utils.parseInteger(document.getElementById('product-building')?.value) || null,
         stock_quantity: Utils.parseInteger(document.getElementById('product-stock')?.value),
-        condition: document.getElementById('product-condition')?.value || PRODUCT_CONDITIONS.DEFAULT
+        condition: document.getElementById('product-condition')?.value || PRODUCT_CONDITIONS.DEFAULT,
+        assigned_to: document.getElementById('product-assigned')?.value?.trim() || null
+        
     };
     
     if (!data.name) {
@@ -2169,7 +2175,7 @@ async showCategoryModal(id = null) {
         
         const infoMsg = document.createElement('div');
         infoMsg.className = 'id-info';
-        infoMsg.style.cssText = 'background:#e3f2fd;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
+        infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
         infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId || 'None available'}`;
         
         const formElement = modal.querySelector('form');
@@ -2246,7 +2252,7 @@ async showBuildingModal(id = null) {
         
         const infoMsg = document.createElement('div');
         infoMsg.className = 'id-info';
-        infoMsg.style.cssText = 'background:#e3f2fd;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
+        infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
         infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId || 'None available'}`;
         
         const formElement = modal.querySelector('form');
