@@ -10,6 +10,7 @@ Features:
 - Product Condition field
 - Category filter in search bar (use "category:" prefix)
 - Stock adjustment shows only defective products
+- Enhanced practical dashboard statistics
 */
 'use strict';
 // ============================================================================
@@ -590,7 +591,6 @@ try {
 UIManager.showLoading();
 const stats = await this.getDashboardStats();
 await this.renderDashboardStats(stats);
-await Promise.all([this.loadRecentMovements(), this.loadTopProducts()]);
 } catch (error) {
 console.error('Dashboard load failed:', error);
 UIManager.showError('dashboard-error', 'Failed to load dashboard');
@@ -598,13 +598,15 @@ UIManager.showError('dashboard-error', 'Failed to load dashboard');
 UIManager.hideLoading();
 }
 },
+
 async getDashboardStats() {
     const supabase = window.getSupabaseClient();
     if (!supabase) throw new Error('Database unavailable');
     
+    // Get all active products
     const { data: products, error } = await supabase
         .from(TABLES.PRODUCTS)
-        .select('stock_quantity')
+        .select('stock_quantity, condition, category_id, building_id')
         .eq('is_active', true);
         
     if (error) throw error;
@@ -612,89 +614,290 @@ async getDashboardStats() {
     const totalProducts = products?.length || 0;
     const totalItems = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
     
-    return { total_products: totalProducts, total_items: totalItems };
+    // Calculate condition-based stats
+    const defectiveProducts = products?.filter(p => 
+        (p.condition || '').toLowerCase().includes('defective')
+    ).length || 0;
+    
+    const damagedProducts = products?.filter(p => 
+        (p.condition || '').toLowerCase().includes('damaged')
+    ).length || 0;
+    
+    const assignedProducts = products?.filter(p => 
+        (p.condition || '').toLowerCase().includes('assigned')
+    ).length || 0;
+    
+    const workingProducts = totalProducts - defectiveProducts - damagedProducts;
+    
+    // Calculate out of stock
+    const outOfStockProducts = products?.filter(p => (p.stock_quantity || 0) === 0).length || 0;
+    
+    // Get total value (assuming each product has value, defaulting to stock_quantity for now)
+    const totalValue = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
+    
+    // Get today's movements
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayMovements } = await supabase
+        .from(TABLES.MOVEMENTS)
+        .select('movement_type, quantity')
+        .gte('created_at', today);
+        
+    const todayInbound = todayMovements
+        ?.filter(m => m.movement_type === 'IN')
+        .reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
+        
+    const todayOutbound = todayMovements
+        ?.filter(m => m.movement_type === 'OUT')
+        .reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
+    
+    // Get categories count
+    const { count: categoriesCount } = await supabase
+        .from(TABLES.CATEGORIES)
+        .select('*', { count: 'exact', head: true });
+    
+    // Get buildings count
+    const { count: buildingsCount } = await supabase
+        .from(TABLES.BUILDINGS)
+        .select('*', { count: 'exact', head: true });
+    
+    return {
+        total_products: totalProducts,
+        total_items: totalItems,
+        total_value: totalValue,
+        working_products: workingProducts,
+        defective_products: defectiveProducts,
+        damaged_products: damagedProducts,
+        assigned_products: assignedProducts,
+        out_of_stock: outOfStockProducts,
+        today_inbound: todayInbound,
+        today_outbound: todayOutbound,
+        categories_count: categoriesCount || 0,
+        buildings_count: buildingsCount || 0
+    };
 },
 
 async renderDashboardStats(stats) {
     const container = document.getElementById('stats-container');
     if (!container) return;
     
-    const statsData = [
-        { title: 'Total Products', value: stats.total_products, icon: 'fa-boxes', color: '#4361ee' },
-        { title: 'Items in Stock', value: stats.total_items, icon: 'fa-chart-bar', color: '#06d6a0' }
-    ];
+    // Add CSS for dashboard grid
+    if (!document.querySelector('#dashboard-grid-styles')) {
+        const gridStyle = document.createElement('style');
+        gridStyle.id = 'dashboard-grid-styles';
+        gridStyle.textContent = `
+            .dashboard-grid {
+                display: grid;
+                grid-template-columns: repeat(1, 1fr);
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .dashboard-grid-secondary {
+                display: grid;
+                grid-template-columns: repeat(1, 1fr);
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            
+            @media (max-width: 1400px) {
+                .dashboard-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                .dashboard-grid-secondary {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .dashboard-grid {
+                    grid-template-columns: 1fr;
+                }
+                .dashboard-grid-secondary {
+                    grid-template-columns: 1fr;
+                }
+            }
+            
+            .stat-card {
+                background: var(--gradient);
+                border-radius: 16px;
+                padding: 25px;
+                color: white;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            }
+            
+            .stat-card-icon {
+                position: absolute;
+                right: 20px;
+                top: 20px;
+                opacity: 0.2;
+            }
+            
+            .stat-card-content {
+                position: relative;
+                z-index: 1;
+            }
+            
+            .stat-card-title {
+                font-size: 14px;
+                opacity: 0.9;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-weight: 500;
+            }
+            
+            .stat-card-value {
+                font-size: 36px;
+                font-weight: 700;
+                margin-bottom: 8px;
+                font-family: 'Courier New', monospace;
+            }
+            
+            .stat-card-subtitle {
+                font-size: 13px;
+                opacity: 0.8;
+            }
+            
+            .stat-card-mini {
+                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid rgba(255,255,255,0.05);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .stat-card-mini::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, var(--accent-color, #4361ee) 0%, transparent 100%);
+                opacity: 0.5;
+            }
+            
+            .stat-card-mini:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            }
+            
+            .stat-value-mini {
+                font-size: 32px;
+                font-weight: 700;
+                margin-bottom: 5px;
+                font-family: 'Courier New', monospace;
+            }
+            
+            .stat-label-mini {
+                font-size: 14px;
+                font-weight: 600;
+                color: #e0e0e0;
+                margin-bottom: 4px;
+            }
+            
+            .stat-desc-mini {
+                font-size: 11px;
+                color: #9e9e9e;
+            }
+            
+            .trend-up {
+                color: #06d6a0;
+            }
+            
+            .trend-down {
+                color: #ef476f;
+            }
+        `;
+        document.head.appendChild(gridStyle);
+    }
     
-    container.innerHTML = statsData.map(stat => `
-        <div class="stat-card">
-            <i class="fas ${stat.icon} stat-icon" style="color:${stat.color};opacity:0.3"></i>
-            <div class="stat-value" style="color:${stat.color}">${Utils.escapeHtml(String(stat.value))}</div>
-            <div class="stat-title">${Utils.escapeHtml(stat.title)}</div>
+    container.innerHTML = `
+        <div class="dashboard-grid">
+            <div class="stat-card" style="--gradient: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                <div class="stat-card-icon">
+                    <i class="fas fa-boxes" style="font-size: 48px;"></i>
+                </div>
+                <div class="stat-card-content">
+                    <div class="stat-card-title">Total Products</div>
+                    <div class="stat-card-value">${stats.total_products}</div>
+                    <div class="stat-card-subtitle">${stats.categories_count} categories · ${stats.buildings_count} buildings</div>
+                </div>
+            </div>
+            
+            <div class="stat-card" style="--gradient: linear-gradient(135deg, #2fa30c 0%, #1b5e20 100%);">
+                <div class="stat-card-icon">
+                    <i class="fas fa-cubes" style="font-size: 48px;"></i>
+                </div>
+                <div class="stat-card-content">
+                    <div class="stat-card-title">Total Inventory</div>
+                    <div class="stat-card-value">${stats.total_items.toLocaleString()}</div>
+                    <div class="stat-card-subtitle">Value: ${stats.total_value.toLocaleString()} units</div>
+                </div>
+            </div>
+            
+            <div class="stat-card" style="--gradient: linear-gradient(135deg, #ef476f 0%, #c62828 100%);">
+                <div class="stat-card-icon">
+                    <i class="fas fa-exclamation-circle" style="font-size: 48px;"></i>
+                </div>
+                <div class="stat-card-content">
+                    <div class="stat-card-title">Out of Stock</div>
+                    <div class="stat-card-value">${stats.out_of_stock}</div>
+                    <div class="stat-card-subtitle">${stats.working_products} working products</div>
+                </div>
+            </div>
+            
+            <div class="stat-card" style="--gradient: linear-gradient(135deg, #7209b7 0%, #560bad 100%);">
+                <div class="stat-card-icon">
+                    <i class="fas fa-chart-line" style="font-size: 48px;"></i>
+                </div>
+                <div class="stat-card-content">
+                    <div class="stat-card-title">Today's Activity</div>
+                    <div class="stat-card-value">
+                        ${stats.today_inbound + stats.today_outbound}
+                        ${stats.today_inbound > stats.today_outbound ? '<span class="trend-up" style="font-size: 16px; vertical-align: super;">↗</span>' : '<span class="trend-down" style="font-size: 16px; vertical-align: super;">↘</span>'}
+                    </div>
+                    <div class="stat-card-subtitle">↑ ${stats.today_inbound} in · ↓ ${stats.today_outbound} out</div>
+                </div>
+            </div>
         </div>
-    `).join('');
-},
-
-async loadRecentMovements() {
-    const supabase = window.getSupabaseClient();
-    if (!supabase) return;
-    
-    const { data, error } = await supabase
-        .from(TABLES.MOVEMENTS)
-        .select('*, products:product_id(name)')
-        .order('created_at', { ascending: false })
-        .limit(5);
         
-    if (error) {
-        console.error('Movements load failed:', error);
-        return;
-    }
-    
-    const container = document.getElementById('recent-movements');
-    if (!container) return;
-    
-    container.innerHTML = data?.length > 0 
-        ? data.map(m => `
-            <div class="movement-item">
-                <div class="movement-product">${Utils.escapeHtml(m.products?.name || 'Unknown')}</div>
-                <div class="movement-details">
-                    <span class="movement-date">${Utils.formatDate(m.created_at)}</span>
-                    <span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">
-                        ${m.movement_type} ${m.quantity}
-                    </span>
-                </div>
+        <div class="dashboard-grid-secondary">
+            <div class="stat-card-mini" style="--accent-color: #06d6a0;">
+                <div class="stat-value-mini" style="color: #06d6a0">${stats.working_products}</div>
+                <div class="stat-label-mini">✅ Working Products</div>
+                <div class="stat-desc-mini">In good condition</div>
             </div>
-        `).join('')
-        : '<p style="color:var(--text-secondary);text-align:center;padding:20px">No recent movements</p>';
-},
-
-async loadTopProducts() {
-    const supabase = window.getSupabaseClient();
-    if (!supabase) return;
-    
-    const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .select('id, name, stock_quantity')
-        .eq('is_active', true)
-        .order('stock_quantity', { ascending: false })
-        .limit(5);
-        
-    if (error) {
-        console.error('Products load failed:', error);
-        return;
-    }
-    
-    const container = document.getElementById('top-products');
-    if (!container) return;
-    
-    container.innerHTML = data?.length > 0
-        ? data.map(p => `
-            <div class="product-item">
-                <div class="product-name">${Utils.escapeHtml(p.name)}</div>
-                <div class="product-details">
-                    <span class="product-stock">Stock: ${p.stock_quantity || 0}</span>
-                </div>
+            
+            <div class="stat-card-mini" style="--accent-color: #ff8c00;">
+                <div class="stat-value-mini" style="color: #ff8c00">${stats.defective_products}</div>
+                <div class="stat-label-mini">🔧 Defective</div>
+                <div class="stat-desc-mini">Needs repair/replacement</div>
             </div>
-        `).join('')
-        : '<p style="color:var(--text-secondary);text-align:center;padding:20px">No products</p>';
+            
+            <div class="stat-card-mini" style="--accent-color: #e63946;">
+                <div class="stat-value-mini" style="color: #e63946">${stats.damaged_products}</div>
+                <div class="stat-label-mini">💔 Damaged</div>
+                <div class="stat-desc-mini">Cannot be used</div>
+            </div>
+            
+            <div class="stat-card-mini" style="--accent-color: #4361ee;">
+                <div class="stat-value-mini" style="color: #4361ee">${stats.assigned_products}</div>
+                <div class="stat-label-mini">👤 Assigned</div>
+                <div class="stat-desc-mini">In use by personnel</div>
+            </div>
+        </div>
+    `;
 },
 
 async loadProducts() {
