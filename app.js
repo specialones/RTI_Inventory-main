@@ -10,7 +10,7 @@ Features:
 - Product Condition field
 - Category filter in search bar (use "category:" prefix)
 - Stock adjustment shows only defective products
-- Enhanced practical dashboard statistics
+- Enhanced practical dashboard statistics with building breakdown
 */
 'use strict';
 // ============================================================================
@@ -603,16 +603,23 @@ async getDashboardStats() {
     const supabase = window.getSupabaseClient();
     if (!supabase) throw new Error('Database unavailable');
     
-    // Get all active products
+    // Get all active products with building info
     const { data: products, error } = await supabase
         .from(TABLES.PRODUCTS)
-        .select('stock_quantity, condition, category_id, building_id')
+        .select(`
+            stock_quantity, 
+            condition, 
+            category_id, 
+            building_id,
+            buildings:building_id(id, name, location_address)
+        `)
         .eq('is_active', true);
         
     if (error) throw error;
     
     const totalProducts = products?.length || 0;
     const totalItems = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
+    const totalValue = totalItems;
     
     // Calculate condition-based stats
     const defectiveProducts = products?.filter(p => 
@@ -631,9 +638,6 @@ async getDashboardStats() {
     
     // Calculate out of stock
     const outOfStockProducts = products?.filter(p => (p.stock_quantity || 0) === 0).length || 0;
-    
-    // Get total value (assuming each product has value, defaulting to stock_quantity for now)
-    const totalValue = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
     
     // Get today's movements
     const today = new Date().toISOString().split('T')[0];
@@ -655,10 +659,25 @@ async getDashboardStats() {
         .from(TABLES.CATEGORIES)
         .select('*', { count: 'exact', head: true });
     
-    // Get buildings count
-    const { count: buildingsCount } = await supabase
+    // Get buildings with their product counts and total units
+    const { data: buildings } = await supabase
         .from(TABLES.BUILDINGS)
-        .select('*', { count: 'exact', head: true });
+        .select('*, products:products(id, stock_quantity)');
+    
+    // Process building data
+    const buildingStats = (buildings || []).map(building => {
+        const buildingProducts = building.products || [];
+        const totalUnits = buildingProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+        const productCount = buildingProducts.length;
+        
+        return {
+            id: building.id,
+            name: building.name,
+            total_units: totalUnits,
+            product_count: productCount,
+            location: building.location_address || 'N/A'
+        };
+    });
     
     return {
         total_products: totalProducts,
@@ -672,7 +691,8 @@ async getDashboardStats() {
         today_inbound: todayInbound,
         today_outbound: todayOutbound,
         categories_count: categoriesCount || 0,
-        buildings_count: buildingsCount || 0
+        buildings_count: buildings?.length || 0,
+        building_stats: buildingStats
     };
 },
 
@@ -685,18 +705,32 @@ async renderDashboardStats(stats) {
         const gridStyle = document.createElement('style');
         gridStyle.id = 'dashboard-grid-styles';
         gridStyle.textContent = `
-            .dashboard-grid {
-                display: grid;
-                grid-template-columns: repeat(1, 1fr);
-                gap: 10px;
-                margin-bottom: 10px;
-            }
             
             .dashboard-grid-secondary {
                 display: grid;
-                grid-template-columns: repeat(1, 1fr);
-                gap: 10px;
-                margin-bottom: 10px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                margin-bottom: 40px;
+                margin-top: 40px;
+            }
+            
+            .dashboard-buildings {
+                margin-top: 10px;
+            }
+            
+            .dashboard-buildings-title {
+                font-size: 20px;
+                font-weight: 600;
+                color: #e0e0e0;
+                margin-bottom: 25px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid rgba(255,255,255,0.1);
+            }
+            
+            .building-cards-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
             }
             
             @media (max-width: 1400px) {
@@ -704,6 +738,9 @@ async renderDashboardStats(stats) {
                     grid-template-columns: repeat(2, 1fr);
                 }
                 .dashboard-grid-secondary {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                .building-cards-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
             }
@@ -715,12 +752,15 @@ async renderDashboardStats(stats) {
                 .dashboard-grid-secondary {
                     grid-template-columns: 1fr;
                 }
+                .building-cards-grid {
+                    grid-template-columns: 1fr;
+                }
             }
             
             .stat-card {
                 background: var(--gradient);
                 border-radius: 16px;
-                padding: 25px;
+                padding: 30px 25px;
                 color: white;
                 position: relative;
                 overflow: hidden;
@@ -766,14 +806,17 @@ async renderDashboardStats(stats) {
                 opacity: 0.8;
             }
             
+            /* Style mini cards like building cards */
             .stat-card-mini {
                 background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
-                border-radius: 12px;
-                padding: 20px;
+                border-radius: 16px;
+                padding: 25px;
                 border: 1px solid rgba(255,255,255,0.05);
                 transition: all 0.3s ease;
                 position: relative;
                 overflow: hidden;
+                display: flex;
+                flex-direction: column;
             }
             
             .stat-card-mini::before {
@@ -782,7 +825,7 @@ async renderDashboardStats(stats) {
                 top: 0;
                 left: 0;
                 right: 0;
-                height: 3px;
+                height: 4px;
                 background: linear-gradient(90deg, var(--accent-color, #4361ee) 0%, transparent 100%);
                 opacity: 0.5;
             }
@@ -792,22 +835,64 @@ async renderDashboardStats(stats) {
                 box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             }
             
-            .stat-value-mini {
-                font-size: 32px;
+            .mini-card-header {
+                margin-bottom: 20px;
+            }
+            
+            .mini-card-name {
+                font-size: 18px;
+                font-weight: 600;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .mini-card-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                background: var(--icon-bg, linear-gradient(135deg, #4361ee 0%, #7209b7 100%));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                color: white;
+                flex-shrink: 0;
+            }
+            
+            .mini-card-subtitle {
+                font-size: 13px;
+                color: #9e9e9e;
+                padding-left: 54px;
+            }
+            
+            .mini-card-stats {
+                margin-top: auto;
+                text-align: center;
+                padding: 15px 10px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            
+            .mini-card-value {
+                font-size: 42px;
                 font-weight: 700;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
                 font-family: 'Courier New', monospace;
             }
             
-            .stat-label-mini {
+            .mini-card-label {
                 font-size: 14px;
                 font-weight: 600;
                 color: #e0e0e0;
                 margin-bottom: 4px;
             }
             
-            .stat-desc-mini {
-                font-size: 11px;
+            .mini-card-desc {
+                font-size: 12px;
                 color: #9e9e9e;
             }
             
@@ -818,83 +903,192 @@ async renderDashboardStats(stats) {
             .trend-down {
                 color: #ef476f;
             }
+            
+            .building-card {
+                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
+                border-radius: 10px;
+                padding: 25px;
+                border: 1px solid rgba(255,255,255,0.05);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                margin-top: 40px;
+                margin-bottom: 40px;
+            }
+            
+            .building-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #4361ee 0%, #7209b7 100%);
+            }
+            
+            .building-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+                border-color: rgba(67, 97, 238, 0.2);
+            }
+            
+            .building-card-header {
+                margin-bottom: 20px;
+            }
+            
+            .building-card-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .building-card-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+            
+            .building-card-location {
+                font-size: 13px;
+                color: #9e9e9e;
+                margin-top: 4px;
+                padding-left: 3px;
+            }
+            
+            .building-card-stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-top: auto;
+            }
+            
+            .building-stat-item {
+                text-align: center;
+                padding: 15px 10px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            
+            .building-stat-value {
+                font-size: 24px;
+                font-weight: 700;
+                color: #06d6a0;
+                font-family: 'Courier New', monospace;
+                margin-bottom: 4px;
+            }
+            
+            .building-stat-label {
+                font-size: 11px;
+                color: #9e9e9e;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
         `;
         document.head.appendChild(gridStyle);
     }
     
+    // Generate building cards HTML
+    const buildingCardsHTML = stats.building_stats.map(building => `
+        <div class="building-card">
+            <div class="building-card-header">
+                <div class="building-card-name">
+                    ${Utils.escapeHtml(building.name)}
+                </div>
+                <div class="building-card-location">
+                    <i class="fas fa-map-marker-alt"></i> ${Utils.escapeHtml(building.location)}
+                </div>
+            </div>
+            
+            <div class="building-card-stats">
+                <div class="building-stat-item">
+                    <div class="building-stat-value">${building.total_units.toLocaleString()}</div>
+                    <div class="building-stat-label">TOTAL ASSETS</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
     container.innerHTML = `
-        <div class="dashboard-grid">
-            <div class="stat-card" style="--gradient: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
-                <div class="stat-card-icon">
-                    <i class="fas fa-boxes" style="font-size: 48px;"></i>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-title">Total Assets</div>
-                    <div class="stat-card-value">${stats.total_products}</div>
-                    <div class="stat-card-subtitle">${stats.categories_count} categories · ${stats.buildings_count} buildings</div>
-                </div>
-            </div>
-            
-            <div class="stat-card" style="--gradient: linear-gradient(135deg, #2fa30c 0%, #1b5e20 100%);">
-                <div class="stat-card-icon">
-                    <i class="fas fa-cubes" style="font-size: 48px;"></i>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-title">Total Inventory</div>
-                    <div class="stat-card-value">${stats.total_items.toLocaleString()}</div>
-                    <div class="stat-card-subtitle">Value: ${stats.total_value.toLocaleString()} units</div>
-                </div>
-            </div>
-            
-            <div class="stat-card" style="--gradient: linear-gradient(135deg, #ef476f 0%, #c62828 100%);">
-                <div class="stat-card-icon">
-                    <i class="fas fa-exclamation-circle" style="font-size: 48px;"></i>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-title">Out of Stock</div>
-                    <div class="stat-card-value">${stats.out_of_stock}</div>
-                    <div class="stat-card-subtitle">${stats.working_products} working products</div>
-                </div>
-            </div>
-            
-            <div class="stat-card" style="--gradient: linear-gradient(135deg, #7209b7 0%, #560bad 100%);">
-                <div class="stat-card-icon">
-                    <i class="fas fa-chart-line" style="font-size: 48px;"></i>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-title">Today's Activity</div>
-                    <div class="stat-card-value">
-                        ${stats.today_inbound + stats.today_outbound}
-                        ${stats.today_inbound > stats.today_outbound ? '<span class="trend-up" style="font-size: 16px; vertical-align: super;">↗</span>' : '<span class="trend-down" style="font-size: 16px; vertical-align: super;">↘</span>'}
+        
+        <div class="dashboard-grid-secondary">
+            <div class="stat-card-mini" style="--accent-color: #06d6a0; --icon-bg: linear-gradient(135deg, #06d6a0 0%, #1b5e20 100%);">
+                <div class="mini-card-header">
+                    <div class="mini-card-name">
+                        <div class="mini-card-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        Working Products
                     </div>
-                    <div class="stat-card-subtitle">↑ ${stats.today_inbound} in · ↓ ${stats.today_outbound} out</div>
+                </div>
+                <div class="mini-card-stats">
+                    <div class="mini-card-value" style="color: #06d6a0;">${stats.working_products}</div>
+                    <div class="mini-card-desc">In good condition</div>
+                </div>
+            </div>
+            
+            <div class="stat-card-mini" style="--accent-color: #ff8c00; --icon-bg: linear-gradient(135deg, #ff8c00 0%, #e65100 100%);">
+                <div class="mini-card-header">
+                    <div class="mini-card-name">
+                        <div class="mini-card-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        Defective
+                    </div>
+                </div>
+                <div class="mini-card-stats">
+                    <div class="mini-card-value" style="color: #ff8c00;">${stats.defective_products}</div>
+                    <div class="mini-card-desc">Needs repair/replacement</div>
+                </div>
+            </div>
+            
+            <div class="stat-card-mini" style="--accent-color: #e63946; --icon-bg: linear-gradient(135deg, #e63946 0%, #c62828 100%);">
+                <div class="mini-card-header">
+                    <div class="mini-card-name">
+                        <div class="mini-card-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        Damaged
+                    </div>
+                </div>
+                <div class="mini-card-stats">
+                    <div class="mini-card-value" style="color: #e63946;">${stats.damaged_products}</div>
+                    <div class="mini-card-desc">Cannot be used</div>
+                </div>
+            </div>
+            
+            <div class="stat-card-mini" style="--accent-color: #4361ee; --icon-bg: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                <div class="mini-card-header">
+                    <div class="mini-card-name">
+                        <div class="mini-card-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        Assigned
+                    </div>
+                </div>
+                <div class="mini-card-stats">
+                    <div class="mini-card-value" style="color: #4361ee;">${stats.assigned_products}</div>
+                    <div class="mini-card-desc">Assigned in units</div>
                 </div>
             </div>
         </div>
         
-        <div class="dashboard-grid-secondary">
-            <div class="stat-card-mini" style="--accent-color: #06d6a0;">
-                <div class="stat-value-mini" style="color: #06d6a0">${stats.working_products}</div>
-                <div class="stat-label-mini">✅ Working Assets</div>
-                <div class="stat-desc-mini">In good condition</div>
-            </div>
-            
-            <div class="stat-card-mini" style="--accent-color: #ff8c00;">
-                <div class="stat-value-mini" style="color: #ff8c00">${stats.defective_products}</div>
-                <div class="stat-label-mini">🔧 Defective</div>
-                <div class="stat-desc-mini">Needs repair/replacement</div>
-            </div>
-            
-            <div class="stat-card-mini" style="--accent-color: #e63946;">
-                <div class="stat-value-mini" style="color: #e63946">${stats.damaged_products}</div>
-                <div class="stat-label-mini">💔 Damaged</div>
-                <div class="stat-desc-mini">Cannot be used</div>
-            </div>
-            
-            <div class="stat-card-mini" style="--accent-color: #4361ee;">
-                <div class="stat-value-mini" style="color: #4361ee">${stats.assigned_products}</div>
-                <div class="stat-label-mini">👤 Assigned</div>
-                <div class="stat-desc-mini">In use by personnel</div>
+        <div class="dashboard-buildings">
+            <div class="building-cards-grid">
+                ${buildingCardsHTML}
             </div>
         </div>
     `;
@@ -977,7 +1171,6 @@ renderProductsTable(products, highlightedId = null) {
 
 async searchProducts(term) {
     try {
-        // REMOVED LOADING SPINNER: UIManager.showLoading();
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
@@ -988,7 +1181,6 @@ async searchProducts(term) {
         
         const search = term.trim().toLowerCase();
         
-        // Check for category filter syntax: "category:CategoryName"
         const categoryMatch = search.match(/^category:\s*(.+)$/i);
         if (categoryMatch) {
             const categoryName = categoryMatch[1].trim();
@@ -1040,12 +1232,9 @@ async searchProducts(term) {
         console.error('Search failed:', error);
         UIManager.showError('products-error', 'Search failed');
         Utils.showNotification('Search failed: ' + error.message, 'error');
-    } finally {
-        // REMOVED LOADING SPINNER: UIManager.hideLoading();
     }
 },
 
-// New method to filter products by category name
 async filterProductsByCategory(categoryName) {
     try {
         const supabase = window.getSupabaseClient();
@@ -1063,7 +1252,6 @@ async filterProductsByCategory(categoryName) {
             query = query.eq('is_active', true);
         }
         
-        // Filter by category name using a join filter
         query = query.filter('categories.name', 'ilike', `%${categoryName}%`);
         
         const { data, error } = await query.order('id', { ascending: true });
@@ -1090,7 +1278,6 @@ async saveProduct(data, id = null) {
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
-        // Set default condition if not provided
         if (!data.condition) {
             data.condition = PRODUCT_CONDITIONS.DEFAULT;
         }
@@ -1567,7 +1754,6 @@ async loadStockView() {
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
-        // Filter to show only defective products for stock adjustment
         const { data, error } = await supabase
             .from(TABLES.PRODUCTS)
             .select('id, name, stock_quantity, condition')
@@ -1580,7 +1766,6 @@ async loadStockView() {
         this.populateProductSelect(AppState.products);
         await this.loadAllMovements();
         
-        // Add info message about defective filter
         const stockContainer = document.getElementById('stock-view');
         if (stockContainer && !document.getElementById('stock-filter-info')) {
             const infoDiv = document.createElement('div');
@@ -1804,7 +1989,6 @@ async showStockSummary(container) {
     
     let html = `
         <div class="stats-grid" style="margin-bottom:20px;">
-            
             <div class="stat-card">
                 <div class="stat-value">${stats.total_items}</div>
                 <div class="stat-title">Total Items</div>
@@ -1848,8 +2032,7 @@ async showCategoryAnalysis(container) {
         .from(TABLES.CATEGORIES)
         .select('*, products:products(id, stock_quantity)');
     
-    // Simplified table: only ID, Category Name, and Total Units (removed Products count)
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Total Assets</th></tr></thead><tbody>';
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Total Units</th></tr></thead><tbody>';
     
     (categories || []).forEach(c => {
         const products = c.products || [];
@@ -1871,8 +2054,7 @@ async showBuildingAnalysis(container) {
         .from(TABLES.BUILDINGS)
         .select('*, products:products(id, stock_quantity)');
     
-    // Simplified table: only ID, Building Name, and Total Units
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total Assets</th></tr></thead><tbody>';
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total Units</th></tr></thead><tbody>';
     
     (buildings || []).forEach(b => {
         const products = b.products || [];
@@ -2021,7 +2203,6 @@ bindEvents() {
     
     const search = document.getElementById('product-search');
     if (search) {
-        // Add placeholder hint for category search
         search.placeholder = "Search by ID, name, SKU, or 'category:CategoryName'...";
         const debouncedSearch = Utils.debounce(async e => {
             await DataService.searchProducts(e.target.value);
