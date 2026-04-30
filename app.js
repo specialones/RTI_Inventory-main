@@ -1849,7 +1849,7 @@ async showCategoryAnalysis(container) {
         .select('*, products:products(id, stock_quantity)');
     
     // Simplified table: only ID, Category Name, and Total Units (removed Products count)
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Total Units</th></tr></thead><tbody>';
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Total Assets</th></tr></thead><tbody>';
     
     (categories || []).forEach(c => {
         const products = c.products || [];
@@ -1872,7 +1872,7 @@ async showBuildingAnalysis(container) {
         .select('*, products:products(id, stock_quantity)');
     
     // Simplified table: only ID, Building Name, and Total Units
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total Units</th></tr></thead><tbody>';
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total Assets</th></tr></thead><tbody>';
     
     (buildings || []).forEach(b => {
         const products = b.products || [];
