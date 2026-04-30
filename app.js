@@ -829,7 +829,7 @@ async renderDashboardStats(stats) {
                     <i class="fas fa-boxes" style="font-size: 48px;"></i>
                 </div>
                 <div class="stat-card-content">
-                    <div class="stat-card-title">Total Products</div>
+                    <div class="stat-card-title">Total Assets</div>
                     <div class="stat-card-value">${stats.total_products}</div>
                     <div class="stat-card-subtitle">${stats.categories_count} categories · ${stats.buildings_count} buildings</div>
                 </div>
@@ -875,7 +875,7 @@ async renderDashboardStats(stats) {
         <div class="dashboard-grid-secondary">
             <div class="stat-card-mini" style="--accent-color: #06d6a0;">
                 <div class="stat-value-mini" style="color: #06d6a0">${stats.working_products}</div>
-                <div class="stat-label-mini">✅ Working Products</div>
+                <div class="stat-label-mini">✅ Working Assets</div>
                 <div class="stat-desc-mini">In good condition</div>
             </div>
             
