@@ -2064,7 +2064,7 @@ async showBuildingAnalysis(container) {
         `)
         .order('id', { ascending: true });
     
-    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>Total PC-Desktop Units</th></tr></thead><tbody>';
+    let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>PC-Desktop Units</th></tr></thead><tbody>';
     
     let grandTotal = 0;
     
