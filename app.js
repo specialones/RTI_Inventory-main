@@ -1416,8 +1416,8 @@ const DataService = {
             }
 
             .interface-2 .building-card:hover {
-                border-color: rgba(99, 102, 241, 0.3);
-                box-shadow: 0 12px 30px rgba(99, 102, 241, 0.15);
+                transform: translateY(-2px);
+                border-color: #4361ee;
             }
 
             .interface-2 .building-stat-value {
