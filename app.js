@@ -1196,7 +1196,7 @@ const DataService = {
             
             .stat-card-mini:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+                box-shadow: 0 8px 25px #4361ee;
             }
             
             .mini-card-header {
@@ -1294,7 +1294,7 @@ const DataService = {
             
             .building-card:hover {
                 transform: translateY(-3px);
-                box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+                box-shadow: 0 12px 30px #4361ee;
                 border-color: rgba(67, 97, 238, 0.2);
             }
             
