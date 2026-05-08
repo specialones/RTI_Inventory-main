@@ -1,24 +1,25 @@
 /**
-Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete)
-Features:
-- bcrypt password hashing
-- Enhanced ID search with highlighting
-- Mobile menu support
-- Soft delete for products with movement history
-- ID filtering 1-1000 range
-- Reorder level removed
-- Product Condition field
-- Category filter in search bar (use "category:" prefix)
-- Stock adjustment shows only defective products
-- Enhanced practical dashboard statistics with building breakdown
-- Interface toggle (Computer Equipment & Electronics / Office Supplies & Consumables) with separate Supabase databases
-- Sidebar toggle button for switching interfaces
-*/
+ * Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete)
+ * Features:
+ * - bcrypt password hashing
+ * - Enhanced ID search with highlighting
+ * - Mobile menu support
+ * - Soft delete for products with movement history
+ * - ID filtering 1-1000 range
+ * - Product Condition field
+ * - Category filter in search bar (use "category:" prefix)
+ * - Stock adjustment shows only defective products
+ * - Enhanced practical dashboard statistics with building breakdown
+ * - Interface toggle (Computer Equipment & Electronics / Office Supplies & Consumables)
+ * - Sidebar toggle button for switching interfaces
+ * - Pagination for Assets Management with navigation buttons
+ */
 'use strict';
 
-// ============================================================================
-// DATABASE CONFIGURATION FOR BOTH INTERFACES
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// DATABASE CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const DatabaseConfig = {
     // Interface 1 - Computer Equipment & Electronics
     interface1: {
@@ -36,9 +37,10 @@ const DatabaseConfig = {
     }
 };
 
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // SUPABASE CLIENT MANAGER
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const SupabaseManager = {
     clients: {},
     
@@ -70,7 +72,6 @@ const SupabaseManager = {
     },
     
     getClient(interfaceName = null) {
-        // If no interface specified, use current interface
         if (!interfaceName) {
             interfaceName = AppState.currentInterface;
         }
@@ -88,19 +89,594 @@ const SupabaseManager = {
     }
 };
 
-// Override the global getSupabaseClient function
-window.getSupabaseClient = () => {
-    return SupabaseManager.getCurrentClient();
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLOBAL HELPERS FOR SUPABASE ACCESS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Add function to get specific interface client
-window.getInterfaceClient = (interfaceName) => {
-    return SupabaseManager.getClient(interfaceName);
-};
+window.getSupabaseClient = () => SupabaseManager.getCurrentClient();
+window.getInterfaceClient = (interfaceName) => SupabaseManager.getClient(interfaceName);
 
-// ============================================================================
-// STATE MANAGEMENT
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// DYNAMIC STYLES INJECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function injectStyles() {
+    // Pagination Styles
+    if (!document.querySelector('#pagination-styles')) {
+        const paginationStyle = document.createElement('style');
+        paginationStyle.id = 'pagination-styles';
+        paginationStyle.textContent = `
+            .pagination-wrapper {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                margin-top: 16px;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .pagination-info {
+                color: var(--text-secondary);
+                font-size: 13px;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+
+            .pagination-controls {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .pagination-btn {
+                min-width: 36px;
+                height: 36px;
+                padding: 0 10px;
+                border: 1px solid var(--border);
+                background: var(--surface-light);
+                color: var(--text-secondary);
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-family: inherit;
+            }
+
+            .pagination-btn:hover:not(:disabled) {
+                background: var(--surface-hover);
+                color: var(--text);
+                border-color: var(--primary);
+                transform: translateY(-1px);
+            }
+
+            .pagination-btn.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+                font-weight: 600;
+                box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+            }
+
+            .pagination-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .pagination-ellipsis {
+                padding: 0 4px;
+                color: var(--text-muted);
+                font-size: 14px;
+                user-select: none;
+            }
+
+            .pagination-per-page {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                white-space: nowrap;
+            }
+
+            .pagination-per-page label {
+                color: var(--text-secondary);
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .pagination-per-page select {
+                background: var(--surface-light);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 7px 30px 7px 12px;
+                color: var(--text);
+                font-size: 13px;
+                cursor: pointer;
+                appearance: none;
+                -webkit-appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b92b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+            }
+
+            .pagination-per-page select:hover {
+                border-color: var(--primary);
+            }
+
+            .pagination-per-page select:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            }
+
+            .interface-2 .pagination-btn.active {
+                background: #6366f1;
+                border-color: #6366f1;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            }
+
+            .interface-2 .pagination-btn:hover:not(:disabled) {
+                border-color: #818cf8;
+            }
+
+            .interface-2 .pagination-per-page select:focus {
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            }
+
+            @media (max-width: 768px) {
+                .pagination-wrapper {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                }
+                
+                .pagination-info {
+                    text-align: center;
+                    font-size: 12px;
+                }
+                
+                .pagination-btn {
+                    min-width: 32px;
+                    height: 32px;
+                    font-size: 12px;
+                    padding: 0 8px;
+                }
+                
+                .pagination-per-page {
+                    justify-content: center;
+                }
+            }
+        `;
+        document.head.appendChild(paginationStyle);
+    }
+
+    // Notification Styles
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            .highlight-row {
+                animation: highlight 1s ease-in-out;
+                background-color: #fff3cd !important;
+            }
+            @keyframes highlight {
+                0% { background-color: #ffeb3b; }
+                100% { background-color: #fff3cd; }
+            }
+            .product-archived {
+                opacity: 0.7;
+                text-decoration: line-through;
+            }
+            .archived-badge {
+                background: #6c757d;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                margin-left: 8px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Interface Toggle Styles
+    if (!document.querySelector('#interface-toggle-styles')) {
+        const interfaceStyle = document.createElement('style');
+        interfaceStyle.id = 'interface-toggle-styles';
+        interfaceStyle.textContent = `
+            .interface-toggle {
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+                user-select: none;
+            }
+            .interface-toggle:hover {
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+            .interface-toggle:active {
+                transform: scale(0.98);
+            }
+            .interface-badge {
+                font-size: 10px;
+                background: rgba(255,255,255,0.2);
+                padding: 2px 8px;
+                border-radius: 10px;
+                margin-left: 8px;
+                vertical-align: middle;
+                font-weight: normal;
+            }
+            .interface-tooltip {
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.9);
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                white-space: nowrap;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s;
+                margin-bottom: 5px;
+            }
+            .interface-tooltip::after {
+                content: '';
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 5px solid transparent;
+                border-top-color: rgba(0,0,0,0.9);
+            }
+            .interface-toggle:hover .interface-tooltip {
+                opacity: 1;
+            }
+            .database-indicator {
+                font-size: 11px;
+                padding: 4px 8px;
+                border-radius: 4px;
+                margin-top: 5px;
+                display: inline-block;
+            }
+            .database-indicator.interface1 {
+                background: rgba(67, 97, 238, 0.2);
+                color: #daf0ea;
+                border: 1px solid rgba(67, 97, 238, 0.3);
+}
+            .database-indicator.interface2 {
+                background: rgba(99,102,241,0.5);
+                color: #daf0ea;
+                border: 2px solid rgba(99,102,241,0.5);
+            }
+            .interface-switch-btn {
+                background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%) !important;
+                border: 1px solid rgba(99,102,241,0.3) !important;
+                margin-bottom: var(--space-3) !important;
+                animation: subtlePulse 2s infinite ease-in-out;
+            }
+            .interface-2 .interface-switch-btn {
+                background: linear-gradient(135deg, #4361ee 100%) !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+            }
+            .interface-switch-btn:hover {
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 20px rgba(99,102,241,0.3) !important;
+            }
+            .interface-2 .interface-switch-btn:hover {
+                box-shadow: 0 6px 20px rgba(99,104,241,0.3) !important;
+            }
+            @keyframes subtlePulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+                50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+            }
+            .interface-2 .interface-switch-btn {
+                animation-name: subtlePulseBlue;
+            }
+            @keyframes subtlePulseBlue {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+                50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+            }
+            .interface-2 .stat-card {
+                border-radius: 8px;
+                padding: 25px 20px;
+                background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            }
+            .interface-2 .dashboard-grid,
+            .interface-2 .dashboard-grid-secondary {
+                gap: 15px;
+            }
+            .interface-2 .building-card {
+                border-radius: 8px;
+                border: 2px solid rgba(99,102,241,0.3);
+            }
+            .interface-2 .building-card::before {
+                background: linear-gradient(90deg,#667eea 0%,#764ba2 100%);
+            }
+            .interface-2 .mini-card-icon {
+                border-radius: 8px;
+            }
+            .interface-2 .stat-card-mini::before {
+                background: linear-gradient(90deg,#667eea 0%,transparent 100%);
+            }
+            .interface-2 .table {
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .interface-2 .action-btn {
+                border-radius: 6px;
+            }
+            .interface-2 .modal-content {
+                border-radius: 12px;
+            }
+            .interface-2 .sidebar {
+                border-right: 2px solid rgba(99,102,241,0.2);
+            }
+        `;
+        document.head.appendChild(interfaceStyle);
+    }
+
+    // Dashboard Grid Styles
+    if (!document.querySelector('#dashboard-grid-styles')) {
+        const gridStyle = document.createElement('style');
+        gridStyle.id = 'dashboard-grid-styles';
+        gridStyle.textContent = `
+            .dashboard-grid-secondary {
+                display: grid;
+                grid-template-columns: repeat(2,1fr);
+                gap: 20px;
+                margin-bottom: 40px;
+                margin-top: 40px;
+            }
+            .dashboard-buildings {
+                margin-top: 10px;
+            }
+            .dashboard-buildings-title {
+                font-size: 20px;
+                font-weight: 600;
+                color: #e0e0e0;
+                margin-bottom: 25px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid rgba(255,255,255,0.1);
+            }
+            .building-cards-grid {
+                display: grid;
+                grid-template-columns: repeat(4,1fr);
+                gap: 20px;
+            }
+            @media(max-width:1400px) {
+                .dashboard-grid-secondary {
+                    grid-template-columns: repeat(2,1fr);
+                }
+                .building-cards-grid {
+                    grid-template-columns: repeat(2,1fr);
+                }
+            }
+            @media(max-width:768px) {
+                .dashboard-grid-secondary {
+                    grid-template-columns: 1fr;
+                }
+                .building-cards-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .stat-card-mini {
+                background: linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);
+                border-radius: 16px;
+                padding: 25px;
+                border: 1px solid rgba(255,255,255,0.05);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .stat-card-mini::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg,var(--accent-color,#4361ee) 0%,transparent 100%);
+                opacity: 0.5;
+            }
+            .stat-card-mini:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgb(70, 90, 202);
+            }
+            .mini-card-header {
+                margin-bottom: 20px;
+            }
+            .mini-card-name {
+                font-size: 18px;
+                font-weight: 600;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 6px;
+            }
+            .mini-card-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                background: var(--icon-bg,linear-gradient(135deg,#4361ee 0%,#7209b7 100%));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                color: white;
+                flex-shrink: 0;
+            }
+            .mini-card-stats {
+                margin-top: auto;
+                text-align: center;
+                padding: 15px 10px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            .mini-card-value {
+                font-size: 42px;
+                font-weight: 700;
+                margin-bottom: 4px;
+                font-family: 'Courier New',monospace;
+            }
+            .mini-card-desc {
+                font-size: 12px;
+                color: #9e9e9e;
+            }
+            .building-card {
+                background: linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);
+                border-radius: 10px;
+                padding: 25px;
+                border: 1px solid rgba(255,255,255,0.05);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                margin-top: 40px;
+                margin-bottom: 40px;
+            }
+            .building-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg,#4361ee 0%,#7209b7 100%);
+            }
+            .building-card:hover {
+               transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgb(70, 90, 202);
+            }
+            .building-card-header {
+                margin-bottom: 20px;
+            }
+            .building-card-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 6px;
+            }
+            .building-card-location {
+                font-size: 13px;
+                color: #9e9e9e;
+                margin-top: 4px;
+                padding-left: 3px;
+            }
+            .building-card-stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-top: auto;
+            }
+            .building-stat-item {
+                text-align: center;
+                padding: 15px 10px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            .building-stat-value {
+                font-size: 24px;
+                font-weight: 700;
+                color: #06d6a0;
+                font-family: 'Courier New',monospace;
+                margin-bottom: 4px;
+            }
+            .building-stat-label {
+                font-size: 11px;
+                color: #9e9e9e;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+            .interface-2 .db-info-banner {
+                background: linear-gradient(135deg,rgba(99,102,241,0.12) 0%,rgba(139,92,246,0.12) 100%);
+                border: 1px solid rgba(99,102,241,0.2);
+            }
+            .db-info-banner i {
+                font-size: 20px;
+                color: #06d6a0;
+            }
+            .interface-2 .db-info-banner i {
+                color: #818cf8;
+            }
+            .db-info-text {
+                font-size: 14px;
+                color: #e0e0e0;
+            }
+            .db-info-text strong {
+                color: #06d6a0;
+            }
+            .interface-2 .db-info-text strong {
+                color: #818cf8;
+            }
+            .interface-2 .stat-card-mini {
+                border-radius: 12px;
+                border: 1px solid rgba(99,102,241,0.15);
+                background: linear-gradient(135deg,#1e2440 0%,#161b33 100%);
+            }
+            .interface-2 .stat-card-mini::before {
+                background: linear-gradient(90deg,#818cf8 0%,transparent 100%);
+            }
+            .interface-2 .mini-card-icon {
+                border-radius: 10px;
+                background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+            }
+            .interface-2 .building-card {
+                border-radius: 12px;
+                border: 1px solid rgba(99,102,241,0.15);
+                background: linear-gradient(135deg,#1e2440 0%,#161b33 100%);
+            }
+            .interface-2 .building-card::before {
+                background: linear-gradient(90deg,#6366f1 0%,#8b5cf6 100%);
+            }
+            .interface-2 .building-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgb(70, 90, 202);
+            }
+            .interface-2 .building-stat-value {
+                color: #818cf8;
+            }
+        `;
+        document.head.appendChild(gridStyle);
+    }
+}
+
+// Inject all styles
+injectStyles();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLICATION STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const AppState = {
     currentUser: null,
     products: [],
@@ -111,9 +687,15 @@ const AppState = {
     isLoading: false,
     clockInterval: null,
     showArchived: false,
-    currentInterface: 'interface1', // 'interface1' or 'interface2'
+    currentInterface: 'interface1',
     
-    // Interface-specific states
+    pagination: {
+        currentPage: 1,
+        itemsPerPage: 10,
+        totalItems: 0,
+        totalPages: 0
+    },
+    
     interfaceStates: {
         interface1: {
             products: [],
@@ -121,7 +703,8 @@ const AppState = {
             buildings: [],
             movements: [],
             selectedProductId: null,
-            showArchived: false
+            showArchived: false,
+            pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         },
         interface2: {
             products: [],
@@ -129,10 +712,12 @@ const AppState = {
             buildings: [],
             movements: [],
             selectedProductId: null,
-            showArchived: false
+            showArchived: false,
+            pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         }
     },
     
+    // Reset all state
     reset() {
         this.currentUser = null;
         this.products = [];
@@ -143,22 +728,17 @@ const AppState = {
         this.isLoading = false;
         this.showArchived = false;
         this.currentInterface = 'interface1';
+        this.pagination = { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 };
         this.interfaceStates = {
             interface1: {
-                products: [],
-                categories: [],
-                buildings: [],
-                movements: [],
-                selectedProductId: null,
-                showArchived: false
+                products: [], categories: [], buildings: [], movements: [],
+                selectedProductId: null, showArchived: false,
+                pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
             },
             interface2: {
-                products: [],
-                categories: [],
-                buildings: [],
-                movements: [],
-                selectedProductId: null,
-                showArchived: false
+                products: [], categories: [], buildings: [], movements: [],
+                selectedProductId: null, showArchived: false,
+                pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
             }
         };
         if (this.clockInterval) {
@@ -167,7 +747,7 @@ const AppState = {
         }
     },
     
-    // Save current state for the active interface
+    // Save current interface state
     saveCurrentState() {
         this.interfaceStates[this.currentInterface] = {
             products: [...this.products],
@@ -175,11 +755,12 @@ const AppState = {
             buildings: [...this.buildings],
             movements: [...this.movements],
             selectedProductId: this.selectedProductId,
-            showArchived: this.showArchived
+            showArchived: this.showArchived,
+            pagination: { ...this.pagination }
         };
     },
     
-    // Load state for the new interface
+    // Load interface state
     loadInterfaceState(interfaceName) {
         const state = this.interfaceStates[interfaceName];
         if (state) {
@@ -189,29 +770,34 @@ const AppState = {
             this.movements = [...state.movements];
             this.selectedProductId = state.selectedProductId;
             this.showArchived = state.showArchived;
+            this.pagination = { ...state.pagination };
         }
     },
     
-    // Get current interface label
+    // Interface label helpers
     getCurrentInterfaceLabel() {
         return DatabaseConfig[this.currentInterface]?.label || 'Unknown';
     },
     
-    // Get current interface short label
     getCurrentInterfaceShortLabel() {
         return DatabaseConfig[this.currentInterface]?.shortLabel || 'Unknown';
     }
 };
-// ============================================================================
-// UTILITIES
-// ============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const Utils = {
+    // String utilities
     escapeHtml(text) {
         if (text == null) return '';
         const div = document.createElement('div');
         div.textContent = String(text);
         return div.innerHTML;
     },
+    
+    // Date formatting
     formatDate(dateString) {
         if (!dateString) return 'N/A';
         try {
@@ -220,7 +806,7 @@ const Utils = {
             return 'Invalid Date';
         }
     },
-
+    
     formatDateTime(dateString) {
         if (!dateString) return 'N/A';
         try {
@@ -229,7 +815,8 @@ const Utils = {
             return 'Invalid Date';
         }
     },
-
+    
+    // Performance utilities
     debounce(func, wait) {
         let timeout;
         return (...args) => {
@@ -237,7 +824,7 @@ const Utils = {
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
     },
-
+    
     throttle(func, limit) {
         let inThrottle;
         return (...args) => {
@@ -248,23 +835,25 @@ const Utils = {
             }
         };
     },
-
+    
+    // Validation utilities
     isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
-
+    
     parseInteger(value, defaultValue = 0) {
         if (value === null || value === undefined || value === '') return defaultValue;
         const parsed = parseInt(value, 10);
         return isNaN(parsed) ? defaultValue : parsed;
     },
-
+    
     parseFloat(value, defaultValue = 0) {
         if (value === null || value === undefined || value === '') return defaultValue;
         const parsed = parseFloat(value);
         return isNaN(parsed) ? defaultValue : parsed;
     },
-
+    
+    // ID validation
     validateIdRange(id) {
         const numId = parseInt(id, 10);
         if (isNaN(numId)) {
@@ -275,35 +864,34 @@ const Utils = {
         }
         return { valid: true, error: null };
     },
-
+    
     validateAndParseId(id) {
         const numId = parseInt(id, 10);
         if (isNaN(numId)) return null;
         if (numId < AppConfig.MIN_ID || numId > AppConfig.MAX_ID) return null;
         return numId;
     },
-
+    
+    // Database ID helpers
     async getNextAvailableId(tableName) {
         const supabase = window.getSupabaseClient();
         if (!supabase) return null;
-
+        
         try {
             const { data, error } = await supabase
                 .from(tableName)
                 .select('id')
                 .eq('is_active', true)
                 .order('id', { ascending: true });
-
+            
             if (error) throw error;
-
+            
             const existingIds = (data || []).map(item => item.id);
-
+            
             for (let i = AppConfig.MIN_ID; i <= AppConfig.MAX_ID; i++) {
-                if (!existingIds.includes(i)) {
-                    return i;
-                }
+                if (!existingIds.includes(i)) return i;
             }
-
+            
             console.error(`No available IDs in range for ${tableName}`);
             return null;
         } catch (error) {
@@ -311,22 +899,23 @@ const Utils = {
             return null;
         }
     },
-
+    
     async isIdAvailable(tableName, id) {
         const supabase = window.getSupabaseClient();
         if (!supabase) return false;
-
+        
         const { data, error } = await supabase
             .from(tableName)
             .select('id')
             .eq('id', id)
             .eq('is_active', true)
             .single();
-
+        
         if (error && error.code === 'PGRST116') return true;
         return false;
     },
-
+    
+    // UI notification
     showNotification(message, type = 'info', duration = 3000) {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
@@ -343,24 +932,28 @@ const Utils = {
             animation: slideIn 0.3s ease;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         `;
+        
         document.body.appendChild(notification);
-
+        
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease';
             setTimeout(() => notification.remove(), 300);
         }, duration);
     },
-
+    
+    // Form validation
     validateForm(formId, rules) {
         const form = document.getElementById(formId);
         if (!form) return { isValid: false, errors: ['Form not found'] };
-
+        
         const errors = [];
+        
         for (const [fieldId, rule] of Object.entries(rules)) {
             const element = document.getElementById(fieldId);
             if (!element) continue;
-
+            
             const value = element.value.trim();
+            
             if (rule.required && !value) {
                 errors.push(rule.message || `${fieldId} is required`);
             }
@@ -371,10 +964,11 @@ const Utils = {
                 errors.push(rule.minLengthMessage || `${fieldId} must be at least ${rule.minLength} characters`);
             }
         }
-
+        
         return { isValid: errors.length === 0, errors };
     },
-
+    
+    // Password utilities
     async hashPassword(password) {
         if (typeof bcrypt !== 'undefined') {
             const salt = await bcrypt.genSalt(10);
@@ -383,21 +977,21 @@ const Utils = {
         console.warn('bcrypt not available, using plain text (development only)');
         return password;
     },
-
+    
     async verifyPassword(password, hash) {
         if (typeof bcrypt !== 'undefined') {
             return await bcrypt.compare(password, hash);
         }
         return password === hash;
     },
-
-    // Helper to generate condition badge HTML
+    
+    // Condition badge helper
     getConditionBadge(condition) {
         const lowerCondition = (condition || '').toLowerCase();
-        let badgeClass = 'working-storage'; // Default fallback
+        let badgeClass = 'working-storage';
         let label = condition || 'Unknown';
         let icon = 'fa-box';
-
+        
         if (lowerCondition.includes('assigned')) {
             badgeClass = 'working-assigned';
             icon = 'fa-user-check';
@@ -411,198 +1005,17 @@ const Utils = {
             badgeClass = 'damaged';
             icon = 'fa-times-circle';
         }
-
+        
         return `<span class="condition-badge ${badgeClass}"><i class="fas ${icon}" aria-hidden="true"></i> ${Utils.escapeHtml(label)}</span>`;
     }
 };
-// Add notification animations
-if (!document.querySelector('#notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'notification-styles';
-    style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } } .highlight-row { animation: highlight 1s ease-in-out; background-color: #fff3cd !important; } @keyframes highlight { 0% { background-color: #ffeb3b; } 100% { background-color: #fff3cd; } } .product-archived { opacity: 0.7; text-decoration: line-through; } .archived-badge { background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px; }`;
-    document.head.appendChild(style);
-}
 
-// Add interface toggle styles
-if (!document.querySelector('#interface-toggle-styles')) {
-    const interfaceStyle = document.createElement('style');
-    interfaceStyle.id = 'interface-toggle-styles';
-    interfaceStyle.textContent = `
-        .interface-toggle {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            user-select: none;
-        }
-        
-        .interface-toggle:hover {
-            opacity: 0.8;
-            transform: scale(1.02);
-        }
-        
-        .interface-toggle:active {
-            transform: scale(0.98);
-        }
-        
-        .interface-badge {
-            font-size: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 8px;
-            vertical-align: middle;
-            font-weight: normal;
-        }
-        
-        .interface-tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            margin-bottom: 5px;
-        }
-        
-        .interface-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: rgba(0, 0, 0, 0.9);
-        }
-        
-        .interface-toggle:hover .interface-tooltip {
-            opacity: 1;
-        }
-        
-        /* Database indicator */
-        .database-indicator {
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-top: 5px;
-            display: inline-block;
-        }
-        
-        .database-indicator.interface1 {
-            background: #4361ee;
-            color: #d6d7f7;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-        }
-        
-        .database-indicator.interface2 {
-            background: rgba(99, 102, 241, 0.2);
-            color: #d6d7f7;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-        }
-        
-        /* Interface Switch Button */
-        .interface-switch-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
-            border: 1px solid rgba(99, 102, 241, 0.3) !important;
-            margin-bottom: var(--space-3) !important;
-            animation: subtlePulse 2s infinite ease-in-out;
-        }
-
-        .interface-2 .interface-switch-btn {
-            background: linear-gradient(135deg, #4361ee 100%) !important;
-            border: 1px solid rgba(99, 102, 241, 0.3) !important;
-        }
-
-        .interface-switch-btn:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3) !important;
-        }
-
-        .interface-2 .interface-switch-btn:hover {
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3) !important;
-        }
-
-        @keyframes subtlePulse {
-            0%, 100% { 
-                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
-            }
-            50% { 
-                box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
-            }
-        }
-
-        .interface-2 .interface-switch-btn {
-            animation-name: subtlePulseGreen;
-        }
-
-        @keyframes subtlePulseGreen {
-            0%, 100% { 
-                box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.4);
-            }
-            50% { 
-                box-shadow: 0 0 0 6px rgba(6, 214, 160, 0);
-            }
-        }
-        
-        /* Interface 2 specific styles */
-        .interface-2 .stat-card {
-            border-radius: 8px;
-            padding: 25px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .interface-2 .dashboard-grid,
-        .interface-2 .dashboard-grid-secondary {
-            gap: 15px;
-        }
-        
-        .interface-2 .building-card {
-            border-radius: 8px;
-            border: 2px solid rgba(99, 102, 241, 0.3);
-        }
-        
-        .interface-2 .building-card::before {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .interface-2 .mini-card-icon {
-            border-radius: 8px;
-        }
-        
-        .interface-2 .stat-card-mini::before {
-            background: linear-gradient(90deg, #667eea 0%, transparent 100%);
-        }
-        
-        .interface-2 .table {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .interface-2 .action-btn {
-            border-radius: 6px;
-        }
-        
-        .interface-2 .modal-content {
-            border-radius: 12px;
-        }
-        
-        .interface-2 .sidebar {
-            border-right: 2px solid rgba(99, 102, 241, 0.2);
-        }
-    `;
-    document.head.appendChild(interfaceStyle);
-}
-
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // UI MANAGER
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const UIManager = {
+    // Loading state
     showLoading() {
         const el = document.getElementById('loading-overlay');
         if (el) {
@@ -610,6 +1023,7 @@ const UIManager = {
             AppState.isLoading = true;
         }
     },
+    
     hideLoading() {
         const el = document.getElementById('loading-overlay');
         if (el) {
@@ -617,22 +1031,26 @@ const UIManager = {
             AppState.isLoading = false;
         }
     },
-
+    
+    // Error handling
     showError(elementId, message, duration = 5000) {
         const el = document.getElementById(elementId);
         if (!el) return;
+        
         el.textContent = message;
         el.style.display = 'block';
+        
         if (duration) {
             setTimeout(() => {
                 el.textContent = '';
                 el.style.display = 'none';
             }, duration);
         }
+        
         console.error('UI Error:', message);
         Utils.showNotification(message, 'error', duration);
     },
-
+    
     hideError(elementId) {
         const el = document.getElementById(elementId);
         if (el) {
@@ -640,39 +1058,43 @@ const UIManager = {
             el.style.display = 'none';
         }
     },
-
+    
+    // View management
     showView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const target = document.getElementById(viewId);
         if (target) target.classList.add('active');
     },
-
+    
     showSection(sectionId) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(sectionId);
         if (target) target.classList.add('active');
-
+        
         const titleMap = {
             'dashboard-home': 'Dashboard',
-            'products-view': 'Products Management',
+            'products-view': 'Assets Management',
             'categories-view': 'Categories Management',
             'buildings-view': 'Buildings Management',
             'stock-view': 'Stock Management',
             'reports-view': 'Reports & Analytics',
             'profile-view': 'User Profile'
         };
+        
         const titleEl = document.getElementById('page-title');
         if (titleEl && titleMap[sectionId]) {
             titleEl.textContent = titleMap[sectionId];
         }
     },
-
+    
+    // Navigation
     updateNavigation(activeView) {
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.toggle('active', item.dataset.view === activeView);
         });
     },
-
+    
+    // Modal management
     openModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
@@ -680,7 +1102,7 @@ const UIManager = {
             document.body.style.overflow = 'hidden';
         }
     },
-
+    
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
@@ -688,75 +1110,69 @@ const UIManager = {
             document.body.style.overflow = '';
         }
     },
-
+    
+    // Date/time display
     updateDateTime() {
         const dateEl = document.getElementById('current-date');
         const timeEl = document.getElementById('current-time');
-
         const now = new Date();
-
-        if (dateEl) {
-            dateEl.textContent = now.toLocaleDateString('en-US', AppConfig.DATE_FORMAT);
-        }
-
-        if (timeEl) {
-            timeEl.textContent = now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
-        }
+        
+        if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', AppConfig.DATE_FORMAT);
+        if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
     },
-
+    
     updateDateDisplay() {
         const el = document.getElementById('current-date');
-        if (el) {
-            el.textContent = new Date().toLocaleDateString('en-US', AppConfig.DATE_FORMAT);
-        }
+        if (el) el.textContent = new Date().toLocaleDateString('en-US', AppConfig.DATE_FORMAT);
     },
-
+    
+    // User interface
     updateUserUI() {
         const nameEl = document.getElementById('user-name');
         const roleEl = document.getElementById('user-role');
+        
         if (nameEl) nameEl.textContent = AppState.currentUser?.full_name || 'User';
         if (roleEl) roleEl.textContent = AppState.currentUser?.role || 'User';
     },
-
+    
+    // Form utilities
     clearForm(formId) {
         const form = document.getElementById(formId);
         if (form) form.reset();
     },
-
+    
+    // Interface indicators
     updateInterfaceIndicator() {
         const indicator = document.getElementById('interface-indicator');
-        if (indicator) {
-            indicator.textContent = AppState.getCurrentInterfaceShortLabel();
-        }
+        if (indicator) indicator.textContent = AppState.getCurrentInterfaceShortLabel();
         
-        // Update body class for interface-specific styling
         if (AppState.currentInterface === 'interface1') {
             document.body.classList.remove('interface-2');
         } else {
             document.body.classList.add('interface-2');
         }
         
-        // Update database indicator
         this.updateDatabaseIndicator();
     },
     
     updateDatabaseIndicator() {
         const dbIndicator = document.getElementById('database-indicator');
         if (dbIndicator) {
-            const shortLabel = AppState.getCurrentInterfaceShortLabel();
-            dbIndicator.textContent = `${shortLabel}`;
+            dbIndicator.textContent = `${AppState.getCurrentInterfaceShortLabel()}`;
             dbIndicator.className = `database-indicator ${AppState.currentInterface}`;
         }
     }
 };
-// ============================================================================
-// AUTH SERVICE
-// ============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUTHENTICATION SERVICE
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const AuthService = {
     async checkAuth() {
         try {
@@ -765,20 +1181,20 @@ const AuthService = {
                 UIManager.showView('login-view');
                 return false;
             }
+            
             const user = JSON.parse(session);
             const supabase = window.getSupabaseClient();
-
             if (!supabase) {
                 this.logout();
                 return false;
             }
-
+            
             const { data, error } = await supabase
                 .from(TABLES.USERS)
                 .select('id, email, full_name, role, is_active')
                 .eq('id', user.id)
                 .single();
-
+            
             if (data && !error && data.is_active !== false) {
                 AppState.currentUser = data;
                 UIManager.updateUserUI();
@@ -787,7 +1203,7 @@ const AuthService = {
                 UIManager.showView('dashboard-view');
                 return true;
             }
-
+            
             this.logout();
             return false;
         } catch (error) {
@@ -796,79 +1212,56 @@ const AuthService = {
             return false;
         }
     },
-
+    
     async login(email, password) {
-        if (!email || !password) {
-            throw new Error('Email and password required');
-        }
-
+        if (!email || !password) throw new Error('Email and password required');
+        
         const supabase = window.getSupabaseClient();
-        if (!supabase) {
-            throw new Error('Database unavailable');
-        }
-
+        if (!supabase) throw new Error('Database unavailable');
+        
         const { data, error } = await supabase
             .from(TABLES.USERS)
             .select('*')
             .eq('email', email.toLowerCase().trim())
             .single();
-
-        if (error || !data) {
-            throw new Error('Invalid credentials');
-        }
-
-        if (!data.is_active) {
-            throw new Error('Account is disabled');
-        }
-
+        
+        if (error || !data) throw new Error('Invalid credentials');
+        if (!data.is_active) throw new Error('Account is disabled');
+        
         const isValidPassword = await Utils.verifyPassword(password, data.password_hash);
-
-        if (!isValidPassword) {
-            throw new Error('Invalid credentials');
-        }
-
+        if (!isValidPassword) throw new Error('Invalid credentials');
+        
         const session = {
             id: data.id,
             email: data.email,
             full_name: data.full_name,
             role: data.role
         };
-
+        
         localStorage.setItem(AppConfig.SESSION_KEY, JSON.stringify(session));
         AppState.currentUser = session;
-
+        
         await supabase
             .from(TABLES.USERS)
             .update({ last_login: new Date().toISOString() })
             .eq('id', data.id);
-
+        
         return data;
     },
-
+    
     async register(fullName, email, password, confirmPassword) {
-        if (!fullName || !email || !password) {
-            throw new Error('All fields required');
-        }
-
-        if (!Utils.isValidEmail(email)) {
-            throw new Error('Invalid email format');
-        }
-
-        if (password !== confirmPassword) {
-            throw new Error('Passwords do not match');
-        }
-
+        if (!fullName || !email || !password) throw new Error('All fields required');
+        if (!Utils.isValidEmail(email)) throw new Error('Invalid email format');
+        if (password !== confirmPassword) throw new Error('Passwords do not match');
         if (password.length < AppConfig.MIN_PASSWORD_LENGTH) {
             throw new Error(`Password must be at least ${AppConfig.MIN_PASSWORD_LENGTH} characters`);
         }
-
+        
         const supabase = window.getSupabaseClient();
-        if (!supabase) {
-            throw new Error('Database unavailable');
-        }
-
+        if (!supabase) throw new Error('Database unavailable');
+        
         const hashedPassword = await Utils.hashPassword(password);
-
+        
         const { data, error } = await supabase
             .from(TABLES.USERS)
             .insert([{
@@ -880,17 +1273,15 @@ const AuthService = {
             }])
             .select()
             .single();
-
+        
         if (error) {
-            if (error.code === '23505') {
-                throw new Error('Email already exists');
-            }
+            if (error.code === '23505') throw new Error('Email already exists');
             throw new Error(`Registration failed: ${error.message}`);
         }
-
+        
         return data;
     },
-
+    
     logout() {
         AppState.reset();
         localStorage.removeItem(AppConfig.SESSION_KEY);
@@ -898,59 +1289,50 @@ const AuthService = {
         UIManager.showView('login-view');
         Utils.showNotification('Logged out successfully', 'info');
     },
-
+    
     async changePassword(current, newPassword, confirm) {
-        if (!current || !newPassword || !confirm) {
-            throw new Error('All fields required');
-        }
-
-        if (newPassword !== confirm) {
-            throw new Error('New passwords do not match');
-        }
-
+        if (!current || !newPassword || !confirm) throw new Error('All fields required');
+        if (newPassword !== confirm) throw new Error('New passwords do not match');
         if (newPassword.length < AppConfig.MIN_PASSWORD_LENGTH) {
             throw new Error(`Password must be at least ${AppConfig.MIN_PASSWORD_LENGTH} characters`);
         }
-
+        
         const supabase = window.getSupabaseClient();
-        if (!supabase || !AppState.currentUser) {
-            throw new Error('Not authenticated');
-        }
-
+        if (!supabase || !AppState.currentUser) throw new Error('Not authenticated');
+        
         const { data: user, error: fetchErr } = await supabase
             .from(TABLES.USERS)
             .select('password_hash')
             .eq('id', AppState.currentUser.id)
             .single();
-
-        if (fetchErr || !user) {
-            throw new Error('User not found');
-        }
-
+        
+        if (fetchErr || !user) throw new Error('User not found');
+        
         const isValidCurrent = await Utils.verifyPassword(current, user.password_hash);
-
-        if (!isValidCurrent) {
-            throw new Error('Current password is incorrect');
-        }
-
+        if (!isValidCurrent) throw new Error('Current password is incorrect');
+        
         const hashedNew = await Utils.hashPassword(newPassword);
-
+        
         const { error: updateErr } = await supabase
             .from(TABLES.USERS)
             .update({ password_hash: hashedNew })
             .eq('id', AppState.currentUser.id);
-
-        if (updateErr) {
-            throw new Error('Password update failed');
-        }
-
+        
+        if (updateErr) throw new Error('Password update failed');
+        
         return true;
     }
 };
-// ============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // DATA SERVICE
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const DataService = {
+    // ═══════════════════════════════════════════════════════════════════════
+    // DASHBOARD METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async loadDashboard() {
         try {
             UIManager.showLoading();
@@ -963,91 +1345,65 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async getDashboardStats() {
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
-
-        // Get all active products with building info
+        
+        // Get all active products
         const { data: products, error } = await supabase
             .from(TABLES.PRODUCTS)
-            .select(`
-                stock_quantity, 
-                condition, 
-                category_id, 
-                building_id,
-                buildings:building_id(id, name, location_address)
-            `)
+            .select(`stock_quantity, condition, category_id, building_id, buildings:building_id(id, name, location_address)`)
             .eq('is_active', true);
-
+        
         if (error) throw error;
-
+        
+        // Calculate basic stats
         const totalProducts = products?.length || 0;
         const totalItems = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
-        const totalValue = totalItems;
-
-        // Calculate condition-based stats
-        const defectiveProducts = products?.filter(p =>
-            (p.condition || '').toLowerCase().includes('defective')
-        ).length || 0;
-
-        const damagedProducts = products?.filter(p =>
-            (p.condition || '').toLowerCase().includes('damaged')
-        ).length || 0;
-
-        const assignedProducts = products?.filter(p =>
-            (p.condition || '').toLowerCase().includes('assigned')
-        ).length || 0;
-
+        const defectiveProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('defective')).length || 0;
+        const damagedProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('damaged')).length || 0;
+        const assignedProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('assigned')).length || 0;
         const workingProducts = totalProducts - defectiveProducts - damagedProducts;
-
-        // Calculate out of stock
         const outOfStockProducts = products?.filter(p => (p.stock_quantity || 0) === 0).length || 0;
-
+        
         // Get today's movements
         const today = new Date().toISOString().split('T')[0];
         const { data: todayMovements } = await supabase
             .from(TABLES.MOVEMENTS)
             .select('movement_type, quantity')
             .gte('created_at', today);
-
-        const todayInbound = todayMovements
-            ?.filter(m => m.movement_type === 'IN')
+        
+        const todayInbound = todayMovements?.filter(m => m.movement_type === 'IN')
             .reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
-
-        const todayOutbound = todayMovements
-            ?.filter(m => m.movement_type === 'OUT')
+        const todayOutbound = todayMovements?.filter(m => m.movement_type === 'OUT')
             .reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
-
-        // Get categories count
+        
+        // Get counts
         const { count: categoriesCount } = await supabase
             .from(TABLES.CATEGORIES)
             .select('*', { count: 'exact', head: true });
-
-        // Get buildings with their product counts and total units
+        
+        // Get building stats
         const { data: buildings } = await supabase
             .from(TABLES.BUILDINGS)
             .select('*, products:products(id, stock_quantity)');
-
-        // Process building data
+        
         const buildingStats = (buildings || []).map(building => {
             const buildingProducts = building.products || [];
-            const totalUnits = buildingProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-            const productCount = buildingProducts.length;
-
             return {
                 id: building.id,
                 name: building.name,
-                total_units: totalUnits,
-                product_count: productCount,
+                total_units: buildingProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0),
+                product_count: buildingProducts.length,
                 location: building.location_address || 'N/A'
             };
         });
-
+        
         return {
             total_products: totalProducts,
             total_items: totalItems,
-            total_value: totalValue,
+            total_value: totalItems,
             working_products: workingProducts,
             defective_products: defectiveProducts,
             damaged_products: damagedProducts,
@@ -1060,498 +1416,240 @@ const DataService = {
             building_stats: buildingStats
         };
     },
-
+    
     async renderDashboardStats(stats) {
         const container = document.getElementById('stats-container');
         if (!container) return;
-
-        // Add CSS for dashboard grid
-        if (!document.querySelector('#dashboard-grid-styles')) {
-            const gridStyle = document.createElement('style');
-            gridStyle.id = 'dashboard-grid-styles';
-            gridStyle.textContent = `
-            
-            .dashboard-grid-secondary {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-                margin-bottom: 40px;
-                margin-top: 40px;
-            }
-            
-            .dashboard-buildings {
-                margin-top: 10px;
-            }
-            
-            .dashboard-buildings-title {
-                font-size: 20px;
-                font-weight: 600;
-                color: #e0e0e0;
-                margin-bottom: 25px;
-                padding-bottom: 12px;
-                border-bottom: 2px solid rgba(255,255,255,0.1);
-            }
-            
-            .building-cards-grid {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 20px;
-            }
-            
-            @media (max-width: 1400px) {
-                .dashboard-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-                .dashboard-grid-secondary {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-                .building-cards-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-            }
-            
-            @media (max-width: 768px) {
-                .dashboard-grid {
-                    grid-template-columns: 1fr;
-                }
-                .dashboard-grid-secondary {
-                    grid-template-columns: 1fr;
-                }
-                .building-cards-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-            
-            .stat-card {
-                background: var(--gradient);
-                border-radius: 16px;
-                padding: 30px 25px;
-                color: white;
-                position: relative;
-                overflow: hidden;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-            }
-            
-            .stat-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            }
-            
-            .stat-card-icon {
-                position: absolute;
-                right: 20px;
-                top: 20px;
-                opacity: 0.2;
-            }
-            
-            .stat-card-content {
-                position: relative;
-                z-index: 1;
-            }
-            
-            .stat-card-title {
-                font-size: 14px;
-                opacity: 0.9;
-                margin-bottom: 8px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                font-weight: 500;
-            }
-            
-            .stat-card-value {
-                font-size: 36px;
-                font-weight: 700;
-                margin-bottom: 8px;
-                font-family: 'Courier New', monospace;
-            }
-            
-            .stat-card-subtitle {
-                font-size: 13px;
-                opacity: 0.8;
-            }
-            
-            .stat-card-mini {
-                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
-                border-radius: 16px;
-                padding: 25px;
-                border: 1px solid rgba(255,255,255,0.05);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .stat-card-mini::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, var(--accent-color, #4361ee) 0%, transparent 100%);
-                opacity: 0.5;
-            }
-            
-            .stat-card-mini:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px #4361ee;
-            }
-            
-            .mini-card-header {
-                margin-bottom: 20px;
-            }
-            
-            .mini-card-name {
-                font-size: 18px;
-                font-weight: 600;
-                color: #ffffff;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 6px;
-            }
-            
-            .mini-card-icon {
-                width: 42px;
-                height: 42px;
-                border-radius: 12px;
-                background: var(--icon-bg, linear-gradient(135deg, #4361ee 0%, #7209b7 100%));
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                color: white;
-                flex-shrink: 0;
-            }
-            
-            .mini-card-subtitle {
-                font-size: 13px;
-                color: #9e9e9e;
-                padding-left: 54px;
-            }
-            
-            .mini-card-stats {
-                margin-top: auto;
-                text-align: center;
-                padding: 15px 10px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                border: 1px solid rgba(255,255,255,0.05);
-            }
-            
-            .mini-card-value {
-                font-size: 42px;
-                font-weight: 700;
-                margin-bottom: 4px;
-                font-family: 'Courier New', monospace;
-            }
-            
-            .mini-card-label {
-                font-size: 14px;
-                font-weight: 600;
-                color: #e0e0e0;
-                margin-bottom: 4px;
-            }
-            
-            .mini-card-desc {
-                font-size: 12px;
-                color: #9e9e9e;
-            }
-            
-            .trend-up {
-                color: #06d6a0;
-            }
-            
-            .trend-down {
-                color: #ef476f;
-            }
-            
-            .building-card {
-                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
-                border-radius: 10px;
-                padding: 25px;
-                border: 1px solid rgba(255,255,255,0.05);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                margin-top: 40px;
-                margin-bottom: 40px;
-            }
-            
-            .building-card::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, #4361ee 0%, #7209b7 100%);
-            }
-            
-            .building-card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 12px 30px #4361ee;
-                border-color: rgba(67, 97, 238, 0.2);
-            }
-            
-            .building-card-header {
-                margin-bottom: 20px;
-            }
-            
-            .building-card-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #ffffff;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 6px;
-            }
-            
-            .building-card-icon {
-                width: 42px;
-                height: 42px;
-                border-radius: 12px;
-                background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                flex-shrink: 0;
-            }
-            
-            .building-card-location {
-                font-size: 13px;
-                color: #9e9e9e;
-                margin-top: 4px;
-                padding-left: 3px;
-            }
-            
-            .building-card-stats {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-top: auto;
-            }
-            
-            .building-stat-item {
-                text-align: center;
-                padding: 15px 10px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                border: 1px solid rgba(255,255,255,0.05);
-            }
-            
-            .building-stat-value {
-                font-size: 24px;
-                font-weight: 700;
-                color: #06d6a0;
-                font-family: 'Courier New', monospace;
-                margin-bottom: 4px;
-            }
-            
-            .building-stat-label {
-                font-size: 11px;
-                color: #9e9e9e;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                font-weight: 500;
-            }
-
-            .interface-2 .db-info-banner {
-                background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%);
-                border: 1px solid rgba(99, 102, 241, 0.2);
-            }
-
-            .db-info-banner i {
-                font-size: 20px;
-                color: #06d6a0;
-            }
-
-            .interface-2 .db-info-banner i {
-                color: #818cf8;
-            }
-
-            .db-info-text {
-                font-size: 14px;
-                color: #e0e0e0;
-            }
-
-            .db-info-text strong {
-                color: #06d6a0;
-            }
-
-            .interface-2 .db-info-text strong {
-                color: #818cf8;
-            }
-
-            /* Interface 2 specific overrides for dashboard cards */
-            .interface-2 .stat-card-mini {
-                border-radius: 12px;
-                border: 1px solid rgba(99, 102, 241, 0.15);
-                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
-            }
-
-            .interface-2 .stat-card-mini::before {
-                background: linear-gradient(90deg, #818cf8 0%, transparent 100%);
-            }
-
-            .interface-2 .mini-card-icon {
-                border-radius: 10px;
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            }
-
-            .interface-2 .building-card {
-                border-radius: 12px;
-                border: 1px solid rgba(99, 102, 241, 0.15);
-                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
-            }
-
-            .interface-2 .building-card::before {
-                background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-            }
-
-            .interface-2 .building-card:hover {
-                transform: translateY(-2px);
-                border-color: #4361ee;
-            }
-
-            .interface-2 .building-stat-value {
-                color: #818cf8;
-            }
-        `;
-            document.head.appendChild(gridStyle);
-        }
-
+        
         const isInterface2 = AppState.currentInterface === 'interface2';
         const dbLabel = AppState.getCurrentInterfaceLabel();
         const shortLabel = AppState.getCurrentInterfaceShortLabel();
-
-        // Generate building cards HTML
+        
         const buildingCardsHTML = stats.building_stats.map(building => `
-        <div class="building-card">
-            <div class="building-card-header">
-                <div class="building-card-name">
-                    ${Utils.escapeHtml(building.name)}
+            <div class="building-card">
+                <div class="building-card-header">
+                    <div class="building-card-name">${Utils.escapeHtml(building.name)}</div>
+                    <div class="building-card-location">
+                        <i class="fas fa-map-marker-alt"></i> ${Utils.escapeHtml(building.location)}
+                    </div>
                 </div>
-                <div class="building-card-location">
-                    <i class="fas fa-map-marker-alt"></i> ${Utils.escapeHtml(building.location)}
-                </div>
-            </div>
-            
-            <div class="building-card-stats">
-                <div class="building-stat-item">
-                    <div class="building-stat-value">${building.total_units.toLocaleString()}</div>
-                    <div class="building-stat-label">TOTAL ASSETS</div>
+                <div class="building-card-stats">
+                    <div class="building-stat-item">
+                        <div class="building-stat-value">${building.total_units.toLocaleString()}</div>
+                        <div class="building-stat-label">TOTAL ASSETS</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
-
-        // Build the complete dashboard HTML
+        `).join('');
+        
         container.innerHTML = `
-        
-        <!-- Stats Cards Grid -->
-        <div class="dashboard-grid-secondary">
-            <div class="stat-card-mini" style="--accent-color: #06d6a0; --icon-bg: linear-gradient(135deg, #06d6a0 0%, #1b5e20 100%);">
-                <div class="mini-card-header">
-                    <div class="mini-card-name">
-                        <div class="mini-card-icon">
-                            <i class="fas fa-check-circle"></i>
+            
+            <div class="dashboard-grid-secondary">
+                <div class="stat-card-mini" style="--accent-color:#06d6a0;--icon-bg:linear-gradient(135deg,#06d6a0 0%,#1b5e20 100%)">
+                    <div class="mini-card-header">
+                        <div class="mini-card-name">
+                            <div class="mini-card-icon"><i class="fas fa-check-circle"></i></div>
+                            Working Products
                         </div>
-                        Working Products
+                    </div>
+                    <div class="mini-card-stats">
+                        <div class="mini-card-value" style="color:#06d6a0">${stats.working_products}</div>
+                        <div class="mini-card-desc">In good condition</div>
                     </div>
                 </div>
-                <div class="mini-card-stats">
-                    <div class="mini-card-value" style="color: #06d6a0;">${stats.working_products}</div>
-                    <div class="mini-card-desc">In good condition</div>
+                
+                <div class="stat-card-mini" style="--accent-color:#ff8c00;--icon-bg:linear-gradient(135deg,#ff8c00 0%,#e65100 100%)">
+                    <div class="mini-card-header">
+                        <div class="mini-card-name">
+                            <div class="mini-card-icon"><i class="fas fa-tools"></i></div>
+                            Defective
+                        </div>
+                    </div>
+                    <div class="mini-card-stats">
+                        <div class="mini-card-value" style="color:#ff8c00">${stats.defective_products}</div>
+                        <div class="mini-card-desc">Needs repair/replacement</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card-mini" style="--accent-color:#e63946;--icon-bg:linear-gradient(135deg,#e63946 0%,#c62828 100%)">
+                    <div class="mini-card-header">
+                        <div class="mini-card-name">
+                            <div class="mini-card-icon"><i class="fas fa-times-circle"></i></div>
+                            Damaged
+                        </div>
+                    </div>
+                    <div class="mini-card-stats">
+                        <div class="mini-card-value" style="color:#e63946">${stats.damaged_products}</div>
+                        <div class="mini-card-desc">Cannot be used</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card-mini" style="--accent-color:#4361ee;--icon-bg:linear-gradient(135deg,#4361ee 0%,#3a0ca3 100%)">
+                    <div class="mini-card-header">
+                        <div class="mini-card-name">
+                            <div class="mini-card-icon"><i class="fas fa-user-check"></i></div>
+                            Assigned
+                        </div>
+                    </div>
+                    <div class="mini-card-stats">
+                        <div class="mini-card-value" style="color:#4361ee">${stats.assigned_products}</div>
+                        <div class="mini-card-desc">Assigned in units</div>
+                    </div>
                 </div>
             </div>
             
-            <div class="stat-card-mini" style="--accent-color: #ff8c00; --icon-bg: linear-gradient(135deg, #ff8c00 0%, #e65100 100%);">
-                <div class="mini-card-header">
-                    <div class="mini-card-name">
-                        <div class="mini-card-icon">
-                            <i class="fas fa-tools"></i>
-                        </div>
-                        Defective
-                    </div>
-                </div>
-                <div class="mini-card-stats">
-                    <div class="mini-card-value" style="color: #ff8c00;">${stats.defective_products}</div>
-                    <div class="mini-card-desc">Needs repair/replacement</div>
+            <div class="dashboard-buildings">
+                ${isInterface2 ? `
+                ` : ''}
+                <div class="building-cards-grid">
+                    ${buildingCardsHTML}
                 </div>
             </div>
-            
-            <div class="stat-card-mini" style="--accent-color: #e63946; --icon-bg: linear-gradient(135deg, #e63946 0%, #c62828 100%);">
-                <div class="mini-card-header">
-                    <div class="mini-card-name">
-                        <div class="mini-card-icon">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                        Damaged
-                    </div>
-                </div>
-                <div class="mini-card-stats">
-                    <div class="mini-card-value" style="color: #e63946;">${stats.damaged_products}</div>
-                    <div class="mini-card-desc">Cannot be used</div>
-                </div>
-            </div>
-            
-            <div class="stat-card-mini" style="--accent-color: #4361ee; --icon-bg: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
-                <div class="mini-card-header">
-                    <div class="mini-card-name">
-                        <div class="mini-card-icon">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        Assigned
-                    </div>
-                </div>
-                <div class="mini-card-stats">
-                    <div class="mini-card-value" style="color: #4361ee;">${stats.assigned_products}</div>
-                    <div class="mini-card-desc">Assigned in units</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Buildings Section -->
-        <div class="dashboard-buildings">
-            <div class="building-cards-grid">
-                ${buildingCardsHTML}
-            </div>
-        </div>
-    `;
-
-        console.log(`Dashboard rendered for ${AppState.currentInterface} - ${dbLabel}`);
+        `;
     },
-
-    async loadProducts() {
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // PAGINATION METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    async getPaginatedProducts(page = 1, itemsPerPage = null) {
+        const supabase = window.getSupabaseClient();
+        if (!supabase) throw new Error('Database unavailable');
+        
+        const perPage = itemsPerPage || AppState.pagination.itemsPerPage;
+        const from = (page - 1) * perPage;
+        const to = from + perPage - 1;
+        
+        let query = supabase
+            .from(TABLES.PRODUCTS)
+            .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
+        
+        if (!AppState.showArchived) {
+            query = query.eq('is_active', true);
+        }
+        
+        const { data, error, count } = await query
+            .order('id', { ascending: true })
+            .range(from, to);
+        
+        if (error) throw error;
+        
+        AppState.pagination.totalItems = count || 0;
+        AppState.pagination.totalPages = Math.ceil((count || 0) / perPage);
+        AppState.pagination.currentPage = page;
+        AppState.pagination.itemsPerPage = perPage;
+        
+        return {
+            products: data || [],
+            totalItems: count || 0,
+            totalPages: AppState.pagination.totalPages,
+            currentPage: page,
+            itemsPerPage: perPage
+        };
+    },
+    
+    renderPagination() {
+        const paginationContainer = document.getElementById('pagination-container');
+        if (!paginationContainer) return;
+        
+        const { currentPage, totalPages, totalItems, itemsPerPage } = AppState.pagination;
+        
+        if (totalItems === 0) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        if (totalPages <= 1) {
+            paginationContainer.innerHTML = `
+                <div class="pagination-wrapper">
+                    <div class="pagination-info">Showing all ${totalItems} items</div>
+                    <div class="pagination-per-page">
+                        <label for="items-per-page">Items per page:</label>
+                        <select id="items-per-page" onchange="window.changeItemsPerPage(this.value)">
+                            <option value="5" ${itemsPerPage === 5 ? 'selected' : ''}>5</option>
+                            <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                            <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                            <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        const startItem = (currentPage - 1) * itemsPerPage + 1;
+        const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+        
+        let pagesHTML = '';
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // First page button
+        if (startPage > 1) {
+            pagesHTML += `<button class="pagination-btn" onclick="window.goToPage(1)" title="Page 1">1</button>`;
+            if (startPage > 2) {
+                pagesHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            pagesHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="window.goToPage(${i})" title="Page ${i}">${i}</button>`;
+        }
+        
+        // Last page button
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pagesHTML += `<span class="pagination-ellipsis">...</span>`;
+            }
+            pagesHTML += `<button class="pagination-btn" onclick="window.goToPage(${totalPages})" title="Page ${totalPages}">${totalPages}</button>`;
+        }
+        
+        paginationContainer.innerHTML = `
+            <div class="pagination-wrapper">
+                <div class="pagination-info">Showing ${startItem}-${endItem} of ${totalItems} items</div>
+                <div class="pagination-controls">
+                    <button class="pagination-btn" onclick="window.goToPage(1)" ${currentPage === 1 ? 'disabled' : ''} title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button class="pagination-btn" onclick="window.goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} title="Previous Page">
+                        <i class="fas fa-angle-left"></i>
+                    </button>
+                    ${pagesHTML}
+                    <button class="pagination-btn" onclick="window.goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} title="Next Page">
+                        <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button class="pagination-btn" onclick="window.goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                </div>
+                <div class="pagination-per-page">
+                    <label for="items-per-page">Items per page:</label>
+                    <select id="items-per-page" onchange="window.changeItemsPerPage(this.value)">
+                        <option value="5" ${itemsPerPage === 5 ? 'selected' : ''}>5</option>
+                        <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                        <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                        <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                        <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    },
+    
+    async loadProductsPaginated(page = 1) {
         try {
             UIManager.showLoading();
-            const supabase = window.getSupabaseClient();
-            if (!supabase) throw new Error('Database unavailable');
-
-            let query = supabase
-                .from(TABLES.PRODUCTS)
-                .select(`
-                *,
-                categories:category_id(name),
-                buildings:building_id(name)
-            `);
-
-            if (!AppState.showArchived) {
-                query = query.eq('is_active', true);
-            }
-
-            const { data, error } = await query.order('id', { ascending: true });
-
-            if (error) throw error;
-            AppState.products = data || [];
+            const result = await this.getPaginatedProducts(page, AppState.pagination.itemsPerPage);
+            AppState.products = result.products;
             this.renderProductsTable(AppState.products);
+            this.renderPagination();
         } catch (error) {
             console.error('Products load failed:', error);
             UIManager.showError('products-error', 'Failed to load products');
@@ -1559,92 +1657,125 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
+    async goToPage(page) {
+        if (page < 1 || page > AppState.pagination.totalPages) return;
+        await this.loadProductsPaginated(page);
+    },
+    
+    async changeItemsPerPage(value) {
+        const itemsPerPage = parseInt(value);
+        AppState.pagination.itemsPerPage = itemsPerPage;
+        AppState.pagination.currentPage = 1;
+        await this.loadProductsPaginated(1);
+    },
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // PRODUCTS METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    async loadProducts() {
+        await this.loadProductsPaginated(1);
+    },
+    
     renderProductsTable(products, highlightedId = null) {
         const tbody = document.getElementById('products-list');
         if (!tbody) return;
-
+        
         if (!products?.length) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No products found</th></tr>';
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align:center;padding:30px;color:var(--text-secondary)">
+                        <i class="fas fa-box-open" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.5"></i>
+                        No products found
+                    </td>
+                </tr>
+            `;
             return;
         }
-
+        
         tbody.innerHTML = products.map(p => {
             const isArchived = p.is_active === false;
             const stock = p.stock_quantity || 0;
             const status = stock > 0
                 ? '<span class="status-badge status-ok">✓ In Stock</span>'
                 : '<span class="status-badge status-low">⚠️ Out of Stock</span>';
-
             const highlightClass = highlightedId === p.id ? 'highlight-row' : '';
             const archivedClass = isArchived ? 'product-archived' : '';
             const assignedTo = p.assigned_to ? Utils.escapeHtml(p.assigned_to) : '—';
-
+            
             return `
-            <tr class="${highlightClass} ${archivedClass}" data-product-id="${p.id}">
-                <td><strong>${Utils.escapeHtml(String(p.id))}</strong>${isArchived ? '<span class="archived-badge">Archived</span>' : ''}</th>
-                <td>${Utils.escapeHtml(p.sku || '')}</th>
-                <td>${Utils.escapeHtml(p.name || '')}${isArchived ? ' [DELETED]' : ''}</th>
-                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</th>
-                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</th>
-                <td>${assignedTo}</th>
-                <td>${Utils.getConditionBadge(p.condition)}</th>
-                <td>${stock}</th>
-                <td>${status}</th>
-                <td>
-                    <button class="action-btn btn-edit" onclick="window.editProduct(${p.id})" ${isArchived ? 'disabled style="opacity:0.5"' : ''}>
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn btn-delete" onclick="window.deleteProduct(${p.id})">
-                        <i class="fas ${isArchived ? 'fa-trash-restore' : 'fa-trash'}"></i>
-                    </button>
-                 </th>
-            </tr>
-        `;
+                <tr class="${highlightClass} ${archivedClass}" data-product-id="${p.id}">
+                    <td>
+                        <strong>${Utils.escapeHtml(String(p.id))}</strong>
+                        ${isArchived ? '<span class="archived-badge">Archived</span>' : ''}
+                    </td>
+                    <td>${Utils.escapeHtml(p.sku || '')}</td>
+                    <td>${Utils.escapeHtml(p.name || '')}${isArchived ? ' [DELETED]' : ''}</td>
+                    <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
+                    <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
+                    <td>${assignedTo}</td>
+                    <td>${Utils.getConditionBadge(p.condition)}</td>
+                    <td>${stock}</td>
+                    <td>${status}</td>
+                    <td>
+                        <button class="action-btn btn-edit" onclick="window.editProduct(${p.id})" ${isArchived ? 'disabled style="opacity:0.5"' : ''}>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn btn-delete" onclick="window.deleteProduct(${p.id})">
+                            <i class="fas ${isArchived ? 'fa-trash-restore' : 'fa-trash'}"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
         }).join('');
     },
-
+    
     async searchProducts(term) {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             if (!term?.trim()) {
-                await this.loadProducts();
+                await this.loadProductsPaginated(1);
                 return;
             }
-
+            
             const search = term.trim().toLowerCase();
-
+            
+            // Check for category filter
             const categoryMatch = search.match(/^category:\s*(.+)$/i);
             if (categoryMatch) {
-                const categoryName = categoryMatch[1].trim();
-                await this.filterProductsByCategory(categoryName);
+                await this.filterProductsByCategory(categoryMatch[1].trim());
                 return;
             }
-
+            
             const isNumericSearch = /^\d+$/.test(search);
-
             let query = supabase
                 .from(TABLES.PRODUCTS)
-                .select(`
-                *,
-                categories:category_id(name),
-                buildings:building_id(name)
-            `);
-
+                .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
+            
             if (!AppState.showArchived) {
                 query = query.eq('is_active', true);
             }
-
+            
             if (isNumericSearch) {
                 const idNumber = parseInt(search, 10);
                 const idValidation = Utils.validateIdRange(idNumber);
+                
                 if (idValidation.valid) {
                     query = query.eq('id', idNumber);
-                    const { data, error } = await query;
+                    const { data, error, count } = await query;
+                    
                     if (error) throw error;
+                    
+                    AppState.products = data || [];
                     this.renderProductsTable(data || [], idNumber);
+                    AppState.pagination.totalItems = count || 0;
+                    AppState.pagination.totalPages = Math.ceil((count || 0) / AppState.pagination.itemsPerPage);
+                    AppState.pagination.currentPage = 1;
+                    this.renderPagination();
+                    
                     if (data?.length === 0) {
                         Utils.showNotification(`No product found with ID ${idNumber}`, 'info');
                     } else {
@@ -1653,12 +1784,21 @@ const DataService = {
                 } else {
                     Utils.showNotification(idValidation.error, 'error');
                     this.renderProductsTable([]);
+                    this.renderPagination();
                 }
             } else {
                 query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,description.ilike.%${search}%`);
-                const { data, error } = await query.order('id', { ascending: true });
+                const { data, error, count } = await query.order('id', { ascending: true });
+                
                 if (error) throw error;
+                
+                AppState.products = data || [];
                 this.renderProductsTable(data || []);
+                AppState.pagination.totalItems = count || 0;
+                AppState.pagination.totalPages = Math.ceil((count || 0) / AppState.pagination.itemsPerPage);
+                AppState.pagination.currentPage = 1;
+                this.renderPagination();
+                
                 if (data?.length === 0) {
                     Utils.showNotification('No products found matching your search', 'info');
                 }
@@ -1669,32 +1809,33 @@ const DataService = {
             Utils.showNotification('Search failed: ' + error.message, 'error');
         }
     },
-
+    
     async filterProductsByCategory(categoryName) {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             let query = supabase
                 .from(TABLES.PRODUCTS)
-                .select(`
-                *,
-                categories:category_id(name),
-                buildings:building_id(name)
-            `);
-
+                .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
+            
             if (!AppState.showArchived) {
                 query = query.eq('is_active', true);
             }
-
+            
             query = query.filter('categories.name', 'ilike', `%${categoryName}%`);
-
-            const { data, error } = await query.order('id', { ascending: true });
-
+            
+            const { data, error, count } = await query.order('id', { ascending: true });
+            
             if (error) throw error;
-
+            
+            AppState.products = data || [];
             this.renderProductsTable(data || []);
-
+            AppState.pagination.totalItems = count || 0;
+            AppState.pagination.totalPages = Math.ceil((count || 0) / AppState.pagination.itemsPerPage);
+            AppState.pagination.currentPage = 1;
+            this.renderPagination();
+            
             if (data?.length === 0) {
                 Utils.showNotification(`No products found in category matching "${categoryName}"`, 'info');
             } else {
@@ -1704,45 +1845,43 @@ const DataService = {
             console.error('Category filter failed:', error);
             Utils.showNotification('Category filter failed: ' + error.message, 'error');
             this.renderProductsTable([]);
+            this.renderPagination();
         }
     },
-
+    
     async saveProduct(data, id = null) {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             if (!data.condition) {
                 data.condition = PRODUCT_CONDITIONS.DEFAULT;
             }
-
+            
             if (id) {
+                // Update existing product
                 const idValidation = Utils.validateIdRange(id);
-                if (!idValidation.valid) {
-                    throw new Error(idValidation.error);
-                }
-
+                if (!idValidation.valid) throw new Error(idValidation.error);
+                
                 const { data: oldProduct } = await supabase
                     .from(TABLES.PRODUCTS)
                     .select('stock_quantity, is_active')
                     .eq('id', id)
                     .single();
-
+                
                 if (oldProduct && oldProduct.is_active === false) {
                     throw new Error('Cannot edit archived product. Please restore it first.');
                 }
-
+                
                 const { error } = await supabase
                     .from(TABLES.PRODUCTS)
-                    .update({
-                        ...data,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update({ ...data, updated_at: new Date().toISOString() })
                     .eq('id', id);
-
+                
                 if (error) throw error;
-
+                
+                // Record stock change if quantity changed
                 if (oldProduct && oldProduct.stock_quantity !== data.stock_quantity) {
                     const diff = data.stock_quantity - oldProduct.stock_quantity;
                     if (diff !== 0) {
@@ -1758,24 +1897,23 @@ const DataService = {
                     }
                 }
             } else {
+                // Create new product
                 const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
-
                 if (!nextId) {
                     throw new Error(`No available IDs in range ${AppConfig.MIN_ID}-${AppConfig.MAX_ID}. Maximum capacity reached.`);
                 }
-
-                const { error } = await supabase
-                    .from(TABLES.PRODUCTS)
-                    .insert([{
-                        id: nextId,
-                        ...data,
-                        is_active: true,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }]);
-
+                
+                const { error } = await supabase.from(TABLES.PRODUCTS).insert([{
+                    id: nextId,
+                    ...data,
+                    is_active: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }]);
+                
                 if (error) throw error;
-
+                
+                // Record initial stock movement
                 if (data.stock_quantity > 0) {
                     await supabase.from(TABLES.MOVEMENTS).insert([{
                         product_id: nextId,
@@ -1788,8 +1926,8 @@ const DataService = {
                     }]);
                 }
             }
-
-            await this.loadProducts();
+            
+            await this.loadProductsPaginated(AppState.pagination.currentPage);
             Utils.showNotification(`Product ${id ? 'updated' : 'created'} successfully`, 'success');
             return true;
         } catch (error) {
@@ -1799,82 +1937,75 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async deleteProduct(id) {
         try {
             const idValidation = Utils.validateIdRange(id);
-            if (!idValidation.valid) {
-                throw new Error(idValidation.error);
-            }
-
+            if (!idValidation.valid) throw new Error(idValidation.error);
+            
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data: product, error: productErr } = await supabase
                 .from(TABLES.PRODUCTS)
                 .select('is_active, name')
                 .eq('id', id)
                 .single();
-
+            
             if (productErr) throw productErr;
-
+            
+            // If already archived, offer permanent deletion
             if (product.is_active === false) {
                 if (confirm(`Permanently delete "${product.name}"? This will remove all movement history. This action cannot be undone.`)) {
                     const { data: movements, error: moveCheck } = await supabase
                         .from(TABLES.MOVEMENTS)
                         .select('id')
                         .eq('product_id', id);
-
+                    
                     if (moveCheck) throw moveCheck;
-
+                    
                     if (movements?.length > 0) {
                         const { error: deleteMovements } = await supabase
                             .from(TABLES.MOVEMENTS)
                             .delete()
                             .eq('product_id', id);
+                        
                         if (deleteMovements) throw deleteMovements;
                     }
-
+                    
                     const { error } = await supabase
                         .from(TABLES.PRODUCTS)
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
+                    
                     Utils.showNotification('Product permanently deleted', 'success');
-                    await this.loadProducts();
+                    await this.loadProductsPaginated(AppState.pagination.currentPage);
                 }
                 return true;
             }
-
+            
+            // Check for movements
             const { data: movements, error: moveCheck } = await supabase
                 .from(TABLES.MOVEMENTS)
                 .select('id', { count: 'exact' })
                 .eq('product_id', id);
-
+            
             if (moveCheck) throw moveCheck;
-
+            
             if (movements?.length > 0) {
-                const confirmArchive = confirm(
-                    `Product "${product.name}" has ${movements.length} movement record(s).\n\n` +
-                    `It cannot be deleted due to existing history.\n\n` +
-                    `Would you like to ARCHIVE it instead?\n` +
-                    `(Archived products are hidden from main view but can be restored later)`
-                );
-
-                if (confirmArchive) {
+                if (confirm(`Product "${product.name}" has ${movements.length} movement record(s).\n\nIt cannot be deleted due to existing history.\n\nWould you like to ARCHIVE it instead?\n(Archived products are hidden from main view but can be restored later)`)) {
                     const { error } = await supabase
                         .from(TABLES.PRODUCTS)
-                        .update({
-                            is_active: false,
-                            deleted_at: new Date().toISOString()
-                        })
+                        .update({ is_active: false, deleted_at: new Date().toISOString() })
                         .eq('id', id);
-
+                    
                     if (error) throw error;
+                    
                     Utils.showNotification('Product archived successfully', 'warning');
-                    await this.loadProducts();
+                    await this.loadProductsPaginated(AppState.pagination.currentPage);
                 }
             } else {
                 if (confirm(`Delete product "${product.name}"? This action cannot be undone.`)) {
@@ -1882,12 +2013,14 @@ const DataService = {
                         .from(TABLES.PRODUCTS)
                         .delete()
                         .eq('id', id);
-
+                    
                     if (error) throw error;
+                    
                     Utils.showNotification('Product deleted successfully', 'success');
-                    await this.loadProducts();
+                    await this.loadProductsPaginated(AppState.pagination.currentPage);
                 }
             }
+            
             return true;
         } catch (error) {
             console.error('Product delete failed:', error);
@@ -1897,23 +2030,21 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async restoreProduct(id) {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { error } = await supabase
                 .from(TABLES.PRODUCTS)
-                .update({
-                    is_active: true,
-                    deleted_at: null
-                })
+                .update({ is_active: true, deleted_at: null })
                 .eq('id', id);
-
+            
             if (error) throw error;
+            
             Utils.showNotification('Product restored successfully', 'success');
-            await this.loadProducts();
+            await this.loadProductsPaginated(AppState.pagination.currentPage);
             return true;
         } catch (error) {
             console.error('Product restore failed:', error);
@@ -1921,28 +2052,31 @@ const DataService = {
             return false;
         }
     },
-
+    
     async toggleShowArchived() {
         AppState.showArchived = !AppState.showArchived;
         const btn = document.getElementById('toggle-archived');
-        if (btn) {
-            btn.textContent = AppState.showArchived ? 'Hide Archived' : 'Show Archived';
-        }
-        await this.loadProducts();
+        if (btn) btn.textContent = AppState.showArchived ? 'Hide Archived' : 'Show Archived';
+        await this.loadProductsPaginated(1);
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // CATEGORIES METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async loadCategories() {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data, error } = await supabase
                 .from(TABLES.CATEGORIES)
                 .select('*')
                 .order('id', { ascending: true });
-
+            
             if (error) throw error;
+            
             AppState.categories = data || [];
             this.renderCategoriesTable(AppState.categories);
         } catch (error) {
@@ -1952,64 +2086,61 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     renderCategoriesTable(categories) {
         const tbody = document.getElementById('categories-list');
         if (!tbody) return;
-
+        
         if (!categories?.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</th></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No categories</td></tr>';
             return;
         }
-
+        
         tbody.innerHTML = categories.map(c => `
-        <tr>
-            <td><strong>${Utils.escapeHtml(String(c.id))}</strong></th>
-            <td>${Utils.escapeHtml(c.name)}</th>
-            <td>${Utils.escapeHtml(c.description || '')}</th>
-            <td>${Utils.formatDate(c.created_at)}</th>
-            <td>
-                <button class="action-btn btn-edit" onclick="window.editCategory(${c.id})"><i class="fas fa-edit"></i></button>
-                <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
-            </th>
-        </tr>
-    `).join('');
+            <tr>
+                <td><strong>${Utils.escapeHtml(String(c.id))}</strong></td>
+                <td>${Utils.escapeHtml(c.name)}</td>
+                <td>${Utils.escapeHtml(c.description || '')}</td>
+                <td>${Utils.formatDate(c.created_at)}</td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="window.editCategory(${c.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     },
-
+    
     async saveCategory(data, id = null) {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             if (!id) {
                 const nextId = await Utils.getNextAvailableId(TABLES.CATEGORIES);
-                if (!nextId) {
-                    throw new Error(`No available IDs. Maximum capacity reached.`);
-                }
-
-                const { error } = await supabase
-                    .from(TABLES.CATEGORIES)
-                    .insert([{
-                        id: nextId,
-                        ...data,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }]);
-
+                if (!nextId) throw new Error('No available IDs. Maximum capacity reached.');
+                
+                const { error } = await supabase.from(TABLES.CATEGORIES).insert([{
+                    id: nextId,
+                    ...data,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }]);
+                
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from(TABLES.CATEGORIES)
-                    .update({
-                        ...data,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update({ ...data, updated_at: new Date().toISOString() })
                     .eq('id', id);
-
+                
                 if (error) throw error;
             }
-
+            
             await this.loadCategories();
             Utils.showNotification(`Category ${id ? 'updated' : 'created'} successfully`, 'success');
             return true;
@@ -2020,31 +2151,33 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async deleteCategory(id) {
         try {
             if (!confirm('Delete this category? Products in this category will be affected.')) {
                 return false;
             }
-
+            
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data: used, error: checkErr } = await supabase
                 .from(TABLES.PRODUCTS)
                 .select('id')
                 .eq('category_id', id)
                 .limit(1);
-
+            
             if (checkErr) throw checkErr;
-
-            if (used?.length > 0) {
-                throw new Error('Category is being used by products and cannot be deleted');
-            }
-
-            const { error } = await supabase.from(TABLES.CATEGORIES).delete().eq('id', id);
+            if (used?.length > 0) throw new Error('Category is being used by products and cannot be deleted');
+            
+            const { error } = await supabase
+                .from(TABLES.CATEGORIES)
+                .delete()
+                .eq('id', id);
+            
             if (error) throw error;
+            
             await this.loadCategories();
             Utils.showNotification('Category deleted successfully', 'success');
             return true;
@@ -2056,19 +2189,24 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // BUILDINGS METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async loadBuildings() {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data, error } = await supabase
                 .from(TABLES.BUILDINGS)
                 .select('*')
                 .order('id', { ascending: true });
-
+            
             if (error) throw error;
+            
             AppState.buildings = data || [];
             this.renderBuildingsTable(AppState.buildings);
         } catch (error) {
@@ -2078,64 +2216,61 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     renderBuildingsTable(buildings) {
         const tbody = document.getElementById('buildings-list');
         if (!tbody) return;
-
+        
         if (!buildings?.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No buildings</th></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No buildings</td></tr>';
             return;
         }
-
+        
         tbody.innerHTML = buildings.map(b => `
-        <tr>
-            <td><strong>${Utils.escapeHtml(String(b.id))}</strong></th>
-            <td>${Utils.escapeHtml(b.name)}</th>
-            <td>${Utils.escapeHtml(b.location_address || '')}</th>
-            <td>${Utils.formatDate(b.created_at)}</th>
-            <td>
-                <button class="action-btn btn-edit" onclick="window.editBuilding(${b.id})"><i class="fas fa-edit"></i></button>
-                <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})"><i class="fas fa-trash"></i></button>
-            </th>
-        </tr>
-    `).join('');
+            <tr>
+                <td><strong>${Utils.escapeHtml(String(b.id))}</strong></td>
+                <td>${Utils.escapeHtml(b.name)}</td>
+                <td>${Utils.escapeHtml(b.location_address || '')}</td>
+                <td>${Utils.formatDate(b.created_at)}</td>
+                <td>
+                    <button class="action-btn btn-edit" onclick="window.editBuilding(${b.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     },
-
+    
     async saveBuilding(data, id = null) {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             if (!id) {
                 const nextId = await Utils.getNextAvailableId(TABLES.BUILDINGS);
-                if (!nextId) {
-                    throw new Error(`No available IDs. Maximum capacity reached.`);
-                }
-
-                const { error } = await supabase
-                    .from(TABLES.BUILDINGS)
-                    .insert([{
-                        id: nextId,
-                        ...data,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }]);
-
+                if (!nextId) throw new Error('No available IDs. Maximum capacity reached.');
+                
+                const { error } = await supabase.from(TABLES.BUILDINGS).insert([{
+                    id: nextId,
+                    ...data,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }]);
+                
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from(TABLES.BUILDINGS)
-                    .update({
-                        ...data,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update({ ...data, updated_at: new Date().toISOString() })
                     .eq('id', id);
-
+                
                 if (error) throw error;
             }
-
+            
             await this.loadBuildings();
             Utils.showNotification(`Building ${id ? 'updated' : 'created'} successfully`, 'success');
             return true;
@@ -2146,31 +2281,33 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async deleteBuilding(id) {
         try {
             if (!confirm('Delete this building? Products in this building will be affected.')) {
                 return false;
             }
-
+            
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data: used, error: checkErr } = await supabase
                 .from(TABLES.PRODUCTS)
                 .select('id')
                 .eq('building_id', id)
                 .limit(1);
-
+            
             if (checkErr) throw checkErr;
-
-            if (used?.length > 0) {
-                throw new Error('Building is being used by products and cannot be deleted');
-            }
-
-            const { error } = await supabase.from(TABLES.BUILDINGS).delete().eq('id', id);
+            if (used?.length > 0) throw new Error('Building is being used by products and cannot be deleted');
+            
+            const { error } = await supabase
+                .from(TABLES.BUILDINGS)
+                .delete()
+                .eq('id', id);
+            
             if (error) throw error;
+            
             await this.loadBuildings();
             Utils.showNotification('Building deleted successfully', 'success');
             return true;
@@ -2182,36 +2319,29 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // STOCK MANAGEMENT METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async loadStockView() {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const { data, error } = await supabase
                 .from(TABLES.PRODUCTS)
                 .select('id, name, stock_quantity, condition')
                 .eq('is_active', true)
                 .ilike('condition', '%defective%')
                 .order('id', { ascending: true });
-
+            
             if (error) throw error;
+            
             AppState.products = data || [];
             this.populateProductSelect(AppState.products);
             await this.loadAllMovements();
-
-            const stockContainer = document.getElementById('stock-view');
-            if (stockContainer && !document.getElementById('stock-filter-info')) {
-                const infoDiv = document.createElement('div');
-                infoDiv.id = 'stock-filter-info';
-                infoDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;';
-                infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Note:</strong> Only products marked as "Defective" are shown in this stock adjustment section.';
-                const formElement = document.getElementById('stock-form');
-                if (formElement && formElement.parentNode) {
-                    formElement.parentNode.insertBefore(infoDiv, formElement);
-                }
-            }
         } catch (error) {
             console.error('Stock view load failed:', error);
             UIManager.showError('stock-error', 'Failed to load stock view');
@@ -2219,148 +2349,147 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     populateProductSelect(products) {
         const select = document.getElementById('stock-product');
         if (!select) return;
-
+        
         if (!products || products.length === 0) {
             select.innerHTML = '<option value="">No defective products found</option>';
             return;
         }
-
+        
         select.innerHTML = '<option value="">Select defective product...</option>' +
-            products.map(p => {
-                const status = (p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : '';
-                return `<option value="${p.id}">ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})${status}</option>`;
-            }).join('');
+            products.map(p => `
+                <option value="${p.id}">
+                    ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})
+                    ${(p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : ''}
+                </option>
+            `).join('');
     },
-
+    
     async loadAllMovements() {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) return;
-
+            
             const { data, error } = await supabase
                 .from(TABLES.MOVEMENTS)
                 .select('*, products:product_id(name)')
                 .order('created_at', { ascending: false });
-
+            
             if (error) throw error;
+            
             AppState.movements = data || [];
             this.renderMovementsTable(AppState.movements);
         } catch (error) {
             console.error('Movements load failed:', error);
         }
     },
-
+    
     renderMovementsTable(movements) {
         const tbody = document.getElementById('movements-list');
         if (!tbody) return;
-
+        
         if (!movements?.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</th></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">No movements</td></tr>';
             return;
         }
-
+        
         tbody.innerHTML = movements.map(m => `
-        <tr>
-            <td>${Utils.formatDateTime(m.created_at)}</th>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
-            <td>${m.quantity}</th>
-            <td>${Utils.escapeHtml(m.reference || '')}</th>
-            <td>${Utils.escapeHtml(m.notes || '')}</th>
-        </tr>
-    `).join('');
+            <tr>
+                <td>${Utils.formatDateTime(m.created_at)}</td>
+                <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
+                <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
+                <td>${m.quantity}</td>
+                <td>${Utils.escapeHtml(m.reference || '')}</td>
+                <td>${Utils.escapeHtml(m.notes || '')}</td>
+            </tr>
+        `).join('');
     },
-
+    
     async loadCategoriesSelect() {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) return;
-
+            
             const { data, error } = await supabase
                 .from(TABLES.CATEGORIES)
                 .select('id, name')
                 .order('name');
-
+            
             if (error) throw error;
-
+            
             const select = document.getElementById('product-category');
             if (!select) return;
-
+            
             select.innerHTML = '<option value="">Select Category...</option>' +
                 (data || []).map(c => `<option value="${c.id}">${Utils.escapeHtml(c.name)}</option>`).join('');
         } catch (error) {
             console.error('Categories select load failed:', error);
         }
     },
-
+    
     async loadBuildingsSelect() {
         try {
             const supabase = window.getSupabaseClient();
             if (!supabase) return;
-
+            
             const { data, error } = await supabase
                 .from(TABLES.BUILDINGS)
                 .select('id, name')
                 .order('name');
-
+            
             if (error) throw error;
-
+            
             const select = document.getElementById('product-building');
             if (!select) return;
-
+            
             select.innerHTML = '<option value="">Select Building...</option>' +
                 (data || []).map(b => `<option value="${b.id}">${Utils.escapeHtml(b.name)}</option>`).join('');
         } catch (error) {
             console.error('Buildings select load failed:', error);
         }
     },
-
+    
     async adjustStock(productId, quantity, type, reference = null, notes = null) {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const product = AppState.products.find(p => p.id === productId);
             if (!product) throw new Error('Product not found');
-
+            
             if (type === 'OUT' && (product.stock_quantity || 0) < quantity) {
                 throw new Error(`Insufficient stock. Available: ${product.stock_quantity || 0}`);
             }
-
+            
             const newQty = type === 'IN'
                 ? (product.stock_quantity || 0) + quantity
                 : (product.stock_quantity || 0) - quantity;
-
+            
             const { error: updateErr } = await supabase
                 .from(TABLES.PRODUCTS)
-                .update({
-                    stock_quantity: newQty,
-                    updated_at: new Date().toISOString()
-                })
+                .update({ stock_quantity: newQty, updated_at: new Date().toISOString() })
                 .eq('id', productId);
-
+            
             if (updateErr) throw updateErr;
-
-            const { error: moveErr } = await supabase
-                .from(TABLES.MOVEMENTS)
-                .insert([{
-                    product_id: productId,
-                    quantity,
-                    movement_type: type,
-                    reference: reference || null,
-                    notes: notes || null,
-                    user_id: AppState.currentUser?.id,
-                    created_at: new Date().toISOString()
-                }]);
-
+            
+            const { error: moveErr } = await supabase.from(TABLES.MOVEMENTS).insert([{
+                product_id: productId,
+                quantity,
+                movement_type: type,
+                reference: reference || null,
+                notes: notes || null,
+                user_id: AppState.currentUser?.id,
+                created_at: new Date().toISOString()
+            }]);
+            
             if (moveErr) throw moveErr;
-
+            
             product.stock_quantity = newQty;
+            
             await Promise.all([this.loadAllMovements(), this.loadDashboard()]);
             Utils.showNotification(`Stock adjusted: ${type} ${quantity} units`, 'success');
             return true;
@@ -2371,16 +2500,20 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // REPORTS METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async generateReport(type) {
         try {
             UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
-
+            
             const content = document.getElementById('report-content');
             if (!content) return;
-
+            
             switch (type) {
                 case 'stock-summary':
                     await this.showStockSummary(content);
@@ -2408,59 +2541,61 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-
+    
     async showStockSummary(container) {
         const supabase = window.getSupabaseClient();
         const stats = await this.getDashboardStats();
         const { data: products } = await supabase
             .from(TABLES.PRODUCTS)
-            .select(`
-            *,
-            categories:category_id(name),
-            buildings:building_id(name)
-        `)
+            .select(`*, categories:category_id(name), buildings:building_id(name)`)
             .eq('is_active', true)
             .order('id', { ascending: true });
-
+        
         let html = `
-        <div class="stats-grid" style="margin-bottom:20px;">
-            <div class="stat-card">
-                <div class="stat-value">${stats.total_items}</div>
-                <div class="stat-title">Total Items</div>
+            <div class="stats-grid" style="margin-bottom:20px">
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_items}</div>
+                    <div class="stat-title">Total Items</div>
+                </div>
             </div>
-        </div>
-        <div class="table-container">
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th>ID</th><th>Code</th><th>Product</th><th>Category</th>
-                        <th>Building</th><th>Condition</th><th>Stock</th><th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-
+            <div class="table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Code</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Building</th>
+                            <th>Condition</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
         (products || []).forEach(p => {
             const stock = p.stock_quantity || 0;
             const status = stock > 0 ? 'OK' : 'OUT OF STOCK';
             html += `
-            <tr>
-                <td>${p.id}</th>
-                <td>${Utils.escapeHtml(p.sku || '-')}</th>
-                <td><strong>${Utils.escapeHtml(p.name)}</strong></th>
-                <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</th>
-                <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</th>
-                <td>${Utils.getConditionBadge(p.condition)}</th>
-                <td style="color: ${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</th>
-                <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></th>
-            </tr>
-        `;
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${Utils.escapeHtml(p.sku || '-')}</td>
+                    <td><strong>${Utils.escapeHtml(p.name)}</strong></td>
+                    <td>${Utils.escapeHtml(p.categories?.name || 'N/A')}</td>
+                    <td>${Utils.escapeHtml(p.buildings?.name || 'N/A')}</td>
+                    <td>${Utils.getConditionBadge(p.condition)}</td>
+                    <td style="color:${status === 'OUT OF STOCK' ? '#ef476f' : '#06d6a0'}">${stock}</td>
+                    <td><span class="status-badge status-${status === 'OUT OF STOCK' ? 'low' : 'ok'}">${status}</span></td>
+                </tr>
+            `;
         });
-
-        html += '</tbody> </table></div>';
+        
+        html += '</tbody></table></div>';
         container.innerHTML = html;
     },
-
+    
     async showCategoryAnalysis(container) {
         const supabase = window.getSupabaseClient();
         const { data: categories } = await supabase
@@ -2468,77 +2603,95 @@ const DataService = {
             .select('*, products:products(id, stock_quantity)')
             .gte('id', 1)
             .order('id', { ascending: true });
-
-        let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Category</th><th>Assets</th></tr></thead><tbody>';
-
+        
+        let html = `
+            <div class="table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Category</th>
+                            <th>Assets</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
         let grandTotal = 0;
-
         (categories || []).forEach(c => {
             const products = c.products || [];
             const totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
             grandTotal += totalUnits;
-
-            html += `<tr>
-            <td>${c.id}</td>
-            <td><strong>${Utils.escapeHtml(c.name)}</strong></td>
-            <td>${totalUnits}</td>
-        </tr>`;
+            
+            html += `
+                <tr>
+                    <td>${c.id}</td>
+                    <td><strong>${Utils.escapeHtml(c.name)}</strong></td>
+                    <td>${totalUnits}</td>
+                </tr>
+            `;
         });
-
-        html += `<tr style="background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%); font-weight: bold; border-top: 2px solid #4361ee;">
-        <td colspan="2" style="text-align: right; color: #e0e0e0;">TOTAL ASSETS:</td>
-        <td style="color: #06d6a0; font-size: 16px;">${grandTotal}</td>
-    </tr>`;
-
-        html += '</tbody></table></div>';
+        
+        html += `
+                <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
+                    <td colspan="2" style="text-align:right;color:#e0e0e0">TOTAL ASSETS:</td>
+                    <td style="color:#06d6a0;font-size:16px">${grandTotal}</td>
+                </tr>
+            </tbody></table></div>
+        `;
+        
         container.innerHTML = html;
     },
-
+    
     async showBuildingAnalysis(container) {
         const supabase = window.getSupabaseClient();
         const { data: buildings } = await supabase
             .from(TABLES.BUILDINGS)
-            .select(`
-            *,
-            products:products(
-                id, 
-                name, 
-                stock_quantity,
-                category_id,
-                categories:category_id(name)
-            )
-        `)
+            .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
             .order('id', { ascending: true });
-
-        let html = '<div class="table-container"><table class="report-table"><thead><tr><th>ID</th><th>Building</th><th>PC-Desktop Units</th></tr></thead><tbody>';
-
+        
+        let html = `
+            <div class="table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Building</th>
+                            <th>PC-Desktop Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
         let grandTotal = 0;
-
         (buildings || []).forEach(b => {
             const products = b.products || [];
             const pcDesktopProducts = products.filter(p =>
-                p.categories &&
-                (p.categories.name || '').toLowerCase().includes('pc-desktop')
+                p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
             );
             const totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
             grandTotal += totalUnits;
-
-            html += `<tr>
-            <td>${b.id}</td>
-            <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
-            <td>${totalUnits}</td>
-        </tr>`;
+            
+            html += `
+                <tr>
+                    <td>${b.id}</td>
+                    <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
+                    <td>${totalUnits}</td>
+                </tr>
+            `;
         });
-
-        html += `<tr style="background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%); font-weight: bold; border-top: 2px solid #4361ee;">
-        <td colspan="2" style="text-align: right; color: #e0e0e0;">TOTAL PC-DESKTOP UNITS:</td>
-        <td style="color: #06d6a0; font-size: 16px;">${grandTotal}</td>
-    </tr>`;
-
-        html += '</tbody></table></div>';
+        
+        html += `
+                <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
+                    <td colspan="2" style="text-align:right;color:#e0e0e0">TOTAL PC-DESKTOP UNITS:</td>
+                    <td style="color:#06d6a0;font-size:16px">${grandTotal}</td>
+                </tr>
+            </tbody></table></div>
+        `;
+        
         container.innerHTML = html;
     },
-
+    
     async showMovementHistory(container) {
         const supabase = window.getSupabaseClient();
         const { data } = await supabase
@@ -2546,225 +2699,84 @@ const DataService = {
             .select('*, products:product_id(name)')
             .order('created_at', { ascending: false })
             .limit(100);
-
+        
         if (!data?.length) {
             container.innerHTML = '<p style="text-align:center;padding:40px">No movements found</p>';
             return;
         }
-
-        let html = '<div class="table-container"><table class="report-table"><thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Qty</th><th>Reference</th></tr></thead><tbody>';
-
+        
+        let html = `
+            <div class="table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th>Type</th>
+                            <th>Qty</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
         data.forEach(m => {
-            html += `<tr>
-            <td>${Utils.formatDateTime(m.created_at)}</th>
-            <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</th>
-            <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></th>
-            <td>${m.quantity}</th>
-            <td>${Utils.escapeHtml(m.reference || '-')}</th>
-        </tr>`;
+            html += `
+                <tr>
+                    <td>${Utils.formatDateTime(m.created_at)}</td>
+                    <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
+                    <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
+                    <td>${m.quantity}</td>
+                    <td>${Utils.escapeHtml(m.reference || '-')}</td>
+                </tr>
+            `;
         });
-
-        html += '</tbody> <tr></div>';
+        
+        html += '</tbody></table></div>';
         container.innerHTML = html;
     }
 };
-// ============================================================================
-// APP CONTROLLER
-// ============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLICATION CONTROLLER
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const App = {
+    interfaceToggleBtn: null,
+    
     async init() {
         try {
             console.log('App initializing...');
             
-            // Initialize both Supabase clients
             const initialized = SupabaseManager.initializeClients();
             if (!initialized) {
                 console.error('Supabase init failed');
                 UIManager.showError('app-error', 'Database connection failed. Please refresh the page.');
                 return;
             }
-
+            
             UIManager.updateDateTime();
             AppState.clockInterval = setInterval(() => UIManager.updateDateTime(), 1000);
-
+            
             await AuthService.checkAuth();
             this.bindEvents();
             this.setupMobileMenu();
             this.setupInterfaceToggle();
             this.addInterfaceToggleButton();
-
-            console.log('App initialized successfully with dual database support');
+            
+            console.log('App initialized successfully');
         } catch (error) {
             console.error('Init failed:', error);
             UIManager.showError('app-error', 'Application failed to start');
         }
     },
-
-    setupMobileMenu() {
-        const toggleBtn = document.getElementById('mobile-menu-toggle');
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-
-        if (toggleBtn && sidebar && overlay) {
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-            });
-
-            overlay.addEventListener('click', () => {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-            });
-        }
-    },
-
-    setupInterfaceToggle() {
-        // Add interface toggle to "Inventory" text
-        const techInventoryElements = document.querySelectorAll('.logo-text, .sidebar-header h2, .app-title, [data-app-name]');
-        
-        techInventoryElements.forEach(element => {
-            if (element.textContent.includes('Inventory') || element.dataset.appName === 'Inventory') {
-                element.classList.add('interface-toggle');
-                element.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
-                
-                
-                // Add database indicator
-                if (!element.querySelector('.database-indicator')) {
-                    const dbIndicator = document.createElement('span');
-                    dbIndicator.className = 'database-indicator interface1';
-                    dbIndicator.id = 'database-indicator';
-                    dbIndicator.textContent = 'Computer & Electronics';
-                    element.appendChild(dbIndicator);
-                }
-                
-                // Add tooltip
-                if (!element.querySelector('.interface-tooltip')) {
-                    const tooltip = document.createElement('span');
-                    tooltip.className = 'interface-tooltip';
-                    tooltip.textContent = 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables';
-                    element.appendChild(tooltip);
-                }
-                
-                // Remove existing click listeners to avoid duplicates
-                const newElement = element.cloneNode(true);
-                element.parentNode.replaceChild(newElement, element);
-                
-                // Add click event
-                newElement.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.toggleInterface();
-                });
-            }
-        });
-
-        // Also check for logo images or icons
-        const logoElements = document.querySelectorAll('.logo, .app-logo, .brand');
-        logoElements.forEach(element => {
-            if (!element.classList.contains('interface-toggle')) {
-                element.style.cursor = 'pointer';
-                element.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
-                
-                const newElement = element.cloneNode(true);
-                element.parentNode.replaceChild(newElement, element);
-                
-                newElement.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.toggleInterface();
-                });
-            }
-        });
-    },
-
-    addInterfaceToggleButton() {
-        // Find the sidebar footer
-        const sidebarFooter = document.querySelector('.sidebar-footer');
-        if (!sidebarFooter) return;
-        
-        // Remove existing toggle button if any
-        const existingBtn = document.getElementById('interface-toggle-btn');
-        if (existingBtn) existingBtn.remove();
-        
-        // Create the toggle button
-        const toggleBtn = document.createElement('button');
-        toggleBtn.id = 'interface-toggle-btn';
-        toggleBtn.className = 'btn-inventory interface-switch-btn';
-        toggleBtn.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
-        
-        // Set button content based on current interface
-        const isInterface1 = AppState.currentInterface === 'interface1';
-        const targetLabel = isInterface1 ? 'Office Supplies' : 'Computer & Electronics';
-        
-        toggleBtn.innerHTML = `
-            <i class="fas fa-exchange-alt"></i>
-            Switch to ${targetLabel}
-        `;
-        
-        // Add click event
-        toggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.toggleInterface();
-        });
-        
-        // Insert before the logout button
-        const logoutBtn = sidebarFooter.querySelector('.btn-logout');
-        if (logoutBtn) {
-            sidebarFooter.insertBefore(toggleBtn, logoutBtn);
-        } else {
-            sidebarFooter.insertBefore(toggleBtn, sidebarFooter.firstChild);
-        }
-        
-        // Store reference for updates
-        this.interfaceToggleBtn = toggleBtn;
-    },
-
-    updateInterfaceToggleButton() {
-        if (this.interfaceToggleBtn) {
-            const isInterface1 = AppState.currentInterface === 'interface1';
-            const targetLabel = isInterface1 ? 'Office Supplies' : 'Computer & Electronics';
-            
-            this.interfaceToggleBtn.innerHTML = `
-                <i class="fas fa-exchange-alt"></i>
-                Switch to ${targetLabel}
-            `;
-        }
-    },
-
-    toggleInterface() {
-        // Save current interface state
-        AppState.saveCurrentState();
-        
-        // Switch interface
-        AppState.currentInterface = AppState.currentInterface === 'interface1' ? 'interface2' : 'interface1';
-        
-        // Load saved state for new interface
-        AppState.loadInterfaceState(AppState.currentInterface);
-        
-        // Update the interface indicator
-        UIManager.updateInterfaceIndicator();
-        
-        // Update the toggle button text
-        this.updateInterfaceToggleButton();
-        
-        // Reload current view to apply interface changes with new database
-        const activeView = document.querySelector('.nav-item.active')?.dataset.view;
-        if (activeView) {
-            this.switchView(activeView);
-        } else {
-            DataService.loadDashboard();
-        }
-        
-        // Show notification with the interface name
-        const interfaceLabel = AppState.getCurrentInterfaceLabel();
-        Utils.showNotification(
-            `Switched to ${interfaceLabel}`, 
-            'info'
-        );
-    },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // EVENT BINDING
+    // ═══════════════════════════════════════════════════════════════════════
+    
     bindEvents() {
+        // Authentication
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.addEventListener('submit', async e => {
@@ -2772,17 +2784,18 @@ const App = {
                 try {
                     UIManager.showLoading();
                     UIManager.hideError('login-error');
+                    
                     await AuthService.login(
                         document.getElementById('username')?.value,
                         document.getElementById('password')?.value
                     );
+                    
                     UIManager.updateUserUI();
                     UIManager.updateInterfaceIndicator();
                     await DataService.loadDashboard();
                     UIManager.showView('dashboard-view');
                     Utils.showNotification('Login successful!', 'success');
                 } catch (err) {
-                    console.error('Login failed:', err);
                     UIManager.showError('login-error', err.message || 'Login failed');
                 } finally {
                     UIManager.hideLoading();
@@ -2790,7 +2803,8 @@ const App = {
                 }
             });
         }
-
+        
+        // Registration
         const regForm = document.getElementById('register-form');
         if (regForm) {
             regForm.addEventListener('submit', async e => {
@@ -2798,29 +2812,29 @@ const App = {
                 try {
                     UIManager.showLoading();
                     UIManager.hideError('register-error');
+                    
                     await AuthService.register(
                         document.getElementById('reg-fullname')?.value,
                         document.getElementById('reg-email')?.value,
                         document.getElementById('reg-password')?.value,
                         document.getElementById('reg-confirm-password')?.value
                     );
+                    
                     Utils.showNotification('Registration successful! Please login.', 'success');
                     UIManager.closeModal('register-modal');
                     regForm.reset();
                 } catch (err) {
-                    console.error('Register failed:', err);
                     UIManager.showError('register-error', err.message || 'Registration failed');
                 } finally {
                     UIManager.hideLoading();
                 }
             });
         }
-
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => AuthService.logout());
-        }
-
+        
+        // Logout
+        document.getElementById('logout-btn')?.addEventListener('click', () => AuthService.logout());
+        
+        // Search
         const search = document.getElementById('product-search');
         if (search) {
             search.placeholder = "Search by ID, name, SKU, or 'category:CategoryName'...";
@@ -2829,47 +2843,35 @@ const App = {
             }, 300);
             search.addEventListener('input', debouncedSearch);
         }
-
-        const clearSearch = document.getElementById('clear-search');
-        if (clearSearch) {
-            clearSearch.addEventListener('click', () => {
-                if (search) search.value = '';
-                DataService.loadProducts();
-                Utils.showNotification('Filters cleared', 'info');
-            });
-        }
-
-        const toggleArchived = document.getElementById('toggle-archived');
-        if (toggleArchived) {
-            toggleArchived.addEventListener('click', () => {
-                DataService.toggleShowArchived();
-            });
-        }
-
+        
+        // Clear search
+        document.getElementById('clear-search')?.addEventListener('click', () => {
+            if (search) search.value = '';
+            DataService.loadProductsPaginated(1);
+            Utils.showNotification('Filters cleared', 'info');
+        });
+        
+        // Toggle archived
+        document.getElementById('toggle-archived')?.addEventListener('click', () => DataService.toggleShowArchived());
+        
+        // Navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
                 const view = this.dataset.view;
                 if (view) App.switchView(view);
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebar-overlay');
-                if (sidebar) sidebar.classList.remove('active');
-                if (overlay) overlay.classList.remove('active');
+                document.getElementById('sidebar')?.classList.remove('active');
+                document.getElementById('sidebar-overlay')?.classList.remove('active');
             });
         });
-
-        const stockForm = document.getElementById('stock-form');
-        if (stockForm) {
-            stockForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await this.handleStockAdjustment(e);
-            });
-        }
-
-        const stockProduct = document.getElementById('stock-product');
-        if (stockProduct) {
-            stockProduct.addEventListener('change', () => this.handleProductSelect());
-        }
-
+        
+        // Stock management
+        document.getElementById('stock-form')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            await this.handleStockAdjustment(e);
+        });
+        
+        document.getElementById('stock-product')?.addEventListener('change', () => this.handleProductSelect());
+        
         document.querySelectorAll('.btn-type').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('active'));
@@ -2877,75 +2879,207 @@ const App = {
                 App.handleStockTypeChange();
             });
         });
-
-        const pwdForm = document.getElementById('password-form');
-        if (pwdForm) {
-            pwdForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await this.handlePasswordChange(e);
-            });
-        }
-
-        const prodForm = document.getElementById('product-form');
-        if (prodForm) {
-            prodForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await this.handleProductSave(e);
-            });
-        }
-
-        const catForm = document.getElementById('category-form');
-        if (catForm) {
-            catForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await this.handleCategorySave(e);
-            });
-        }
-
-        const bldForm = document.getElementById('building-form');
-        if (bldForm) {
-            bldForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await this.handleBuildingSave(e);
-            });
-        }
-
-        const filter = document.getElementById('movement-filter');
-        if (filter) {
-            filter.addEventListener('change', () => this.filterMovements());
-        }
-
+        
+        // Password change
+        document.getElementById('password-form')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            await this.handlePasswordChange(e);
+        });
+        
+        // CRUD forms
+        document.getElementById('product-form')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            await this.handleProductSave(e);
+        });
+        
+        document.getElementById('category-form')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            await this.handleCategorySave(e);
+        });
+        
+        document.getElementById('building-form')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            await this.handleBuildingSave(e);
+        });
+        
+        // Movement filter
+        document.getElementById('movement-filter')?.addEventListener('change', () => this.filterMovements());
+        
+        // Modal close on background click
         window.onclick = e => {
             if (e.target.classList?.contains('modal')) {
                 e.target.classList.remove('active');
                 document.body.style.overflow = '';
             }
         };
-
+        
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K: Focus search
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                const searchInput = document.getElementById('product-search');
-                if (searchInput && document.getElementById('products-view').classList.contains('active')) {
-                    searchInput.focus();
-                    searchInput.select();
+                const si = document.getElementById('product-search');
+                if (si && document.getElementById('products-view').classList.contains('active')) {
+                    si.focus();
+                    si.select();
                 }
             }
             
-            // Add keyboard shortcut for interface toggle (Ctrl+Shift+I)
+            // Ctrl/Cmd + Shift + I: Toggle interface
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I') {
                 e.preventDefault();
                 this.toggleInterface();
             }
         });
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // MOBILE MENU
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    setupMobileMenu() {
+        const toggleBtn = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        if (toggleBtn && sidebar && overlay) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
+    },
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // INTERFACE TOGGLE
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    setupInterfaceToggle() {
+        // Setup clickable logo/brand elements
+        document.querySelectorAll('.logo-text, .sidebar-header h2, .app-title, [data-app-name]').forEach(element => {
+            if (element.textContent.includes('Inventory') || element.dataset.appName === 'Inventory') {
+                element.classList.add('interface-toggle');
+                element.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
+                
+                if (!element.querySelector('.database-indicator')) {
+                    const dbIndicator = document.createElement('span');
+                    dbIndicator.className = 'database-indicator interface1';
+                    dbIndicator.id = 'database-indicator';
+                    dbIndicator.textContent = 'Computer & Electronics';
+                    element.appendChild(dbIndicator);
+                }
+                
+                if (!element.querySelector('.interface-tooltip')) {
+                    const tooltip = document.createElement('span');
+                    tooltip.className = 'interface-tooltip';
+                    tooltip.textContent = 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables';
+                    element.appendChild(tooltip);
+                }
+                
+                // Replace with clickable version
+                const newElement = element.cloneNode(true);
+                element.parentNode.replaceChild(newElement, element);
+                newElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleInterface();
+                });
+            }
+        });
+        
+        // Setup clickable logos
+        document.querySelectorAll('.logo, .app-logo, .brand').forEach(element => {
+            if (!element.classList.contains('interface-toggle')) {
+                element.style.cursor = 'pointer';
+                element.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
+                const newElement = element.cloneNode(true);
+                element.parentNode.replaceChild(newElement, element);
+                newElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleInterface();
+                });
+            }
+        });
+    },
+    
+    addInterfaceToggleButton() {
+        const sidebarFooter = document.querySelector('.sidebar-footer');
+        if (!sidebarFooter) return;
+        
+        // Remove existing button if any
+        const existingBtn = document.getElementById('interface-toggle-btn');
+        if (existingBtn) existingBtn.remove();
+        
+        // Create new toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'interface-toggle-btn';
+        toggleBtn.className = 'btn-inventory interface-switch-btn';
+        toggleBtn.setAttribute('title', 'Click to switch: Computer Equipment & Electronics ↔ Office Supplies & Consumables');
+        
+        const isInterface1 = AppState.currentInterface === 'interface1';
+        toggleBtn.innerHTML = `<i class="fas fa-exchange-alt"></i> Switch to ${isInterface1 ? 'Office Supplies' : 'Computer & Electronics'}`;
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleInterface();
+        });
+        
+        // Insert before logout button or at the beginning
+        const logoutBtn = sidebarFooter.querySelector('.btn-logout');
+        if (logoutBtn) {
+            sidebarFooter.insertBefore(toggleBtn, logoutBtn);
+        } else {
+            sidebarFooter.insertBefore(toggleBtn, sidebarFooter.firstChild);
+        }
+        
+        this.interfaceToggleBtn = toggleBtn;
+    },
+    
+    updateInterfaceToggleButton() {
+        if (this.interfaceToggleBtn) {
+            const isInterface1 = AppState.currentInterface === 'interface1';
+            this.interfaceToggleBtn.innerHTML = `<i class="fas fa-exchange-alt"></i> Switch to ${isInterface1 ? 'Office Supplies' : 'Computer & Electronics'}`;
+        }
+    },
+    
+    toggleInterface() {
+        AppState.saveCurrentState();
+        
+        AppState.currentInterface = AppState.currentInterface === 'interface1' ? 'interface2' : 'interface1';
+        
+        AppState.loadInterfaceState(AppState.currentInterface);
+        UIManager.updateInterfaceIndicator();
+        this.updateInterfaceToggleButton();
+        
+        // Refresh current view
+        const activeView = document.querySelector('.nav-item.active')?.dataset.view;
+        if (activeView) {
+            this.switchView(activeView);
+        } else {
+            DataService.loadDashboard();
+        }
+        
+        Utils.showNotification(`Switched to ${AppState.getCurrentInterfaceLabel()}`, 'info');
+    },
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // STOCK MANAGEMENT HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     handleStockTypeChange() {
-        const productId = AppState.selectedProductId;
-        if (productId) {
-            const product = AppState.products.find(p => p.id === productId);
+        const pid = AppState.selectedProductId;
+        if (pid) {
+            const product = AppState.products.find(p => p.id === pid);
             const warning = document.getElementById('stock-warning');
             const active = document.querySelector('.btn-type.active');
+            
             if (active?.dataset.type === 'OUT' && warning && product) {
                 warning.textContent = `⚠️ Available: ${product.stock_quantity || 0} units`;
                 warning.style.display = 'block';
@@ -2955,27 +3089,28 @@ const App = {
             }
         }
     },
-
+    
     handleProductSelect() {
         const id = document.getElementById('stock-product')?.value;
+        
         if (!id) {
             const info = document.getElementById('stock-info');
             if (info) info.style.display = 'none';
             AppState.selectedProductId = null;
             return;
         }
-
+        
         AppState.selectedProductId = parseInt(id);
         const product = AppState.products.find(p => p.id === AppState.selectedProductId);
-
+        
         if (product) {
             const info = document.getElementById('stock-info');
             const current = document.getElementById('current-stock');
             const warning = document.getElementById('stock-warning');
-
+            
             if (info) info.style.display = 'block';
             if (current) current.textContent = `Current Stock: ${product.stock_quantity || 0}`;
-
+            
             const active = document.querySelector('.btn-type.active');
             if (active?.dataset.type === 'OUT' && warning) {
                 warning.textContent = `⚠️ Available: ${product.stock_quantity || 0} units`;
@@ -2986,68 +3121,82 @@ const App = {
             }
         }
     },
-
+    
     async handleStockAdjustment(e) {
         e.preventDefault();
+        
         if (!AppState.selectedProductId) {
             Utils.showNotification('Please select a product', 'error');
             return;
         }
-
+        
         const qty = Utils.parseInteger(document.getElementById('stock-quantity')?.value);
         if (!qty || qty <= 0) {
             Utils.showNotification('Please enter a valid quantity (greater than 0)', 'error');
             return;
         }
-
+        
         const type = document.querySelector('.btn-type.active')?.dataset.type;
         if (!type) {
             Utils.showNotification('Please select IN or OUT', 'error');
             return;
         }
-
-        const ref = document.getElementById('stock-reference')?.value?.trim();
-        const notes = document.getElementById('stock-notes')?.value?.trim();
-
+        
         try {
-            await DataService.adjustStock(AppState.selectedProductId, qty, type, ref, notes);
+            await DataService.adjustStock(
+                AppState.selectedProductId,
+                qty,
+                type,
+                document.getElementById('stock-reference')?.value?.trim(),
+                document.getElementById('stock-notes')?.value?.trim()
+            );
             this.clearStockForm();
         } catch (err) {
-            console.error('Adjust failed:', err);
             Utils.showNotification(err.message || 'Adjustment failed', 'error');
         }
     },
-
+    
     clearStockForm() {
         const form = document.getElementById('stock-form');
         if (form) form.reset();
+        
         const info = document.getElementById('stock-info');
         if (info) info.style.display = 'none';
+        
         const warning = document.getElementById('stock-warning');
         if (warning) warning.textContent = '';
+        
         AppState.selectedProductId = null;
+        
         const select = document.getElementById('stock-product');
         if (select) select.value = '';
-
+        
+        // Reset to IN type
         const inBtn = document.querySelector('.btn-type[data-type="IN"]');
         const outBtn = document.querySelector('.btn-type[data-type="OUT"]');
         if (inBtn) inBtn.classList.add('active');
         if (outBtn) outBtn.classList.remove('active');
     },
-
+    
     filterMovements() {
         const filter = document.getElementById('movement-filter')?.value;
+        
         if (filter === 'current' && AppState.selectedProductId) {
-            const filtered = AppState.movements.filter(m => m.product_id === AppState.selectedProductId);
-            DataService.renderMovementsTable(filtered);
+            DataService.renderMovementsTable(
+                AppState.movements.filter(m => m.product_id === AppState.selectedProductId)
+            );
         } else {
             DataService.renderMovementsTable(AppState.movements);
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // NAVIGATION & VIEWS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     switchView(viewName) {
         UIManager.updateNavigation(viewName);
-
+        
         const sections = {
             dashboard: 'dashboard-home',
             products: 'products-view',
@@ -3057,16 +3206,16 @@ const App = {
             reports: 'reports-view',
             profile: 'profile-view'
         };
-
+        
         const section = sections[viewName];
         if (section) UIManager.showSection(section);
-
+        
         switch (viewName) {
             case 'dashboard':
                 DataService.loadDashboard();
                 break;
             case 'products':
-                DataService.loadProducts();
+                DataService.loadProductsPaginated(AppState.pagination.currentPage || 1);
                 break;
             case 'categories':
                 DataService.loadCategories();
@@ -3082,18 +3231,23 @@ const App = {
                 break;
         }
     },
-
+    
     loadProfile() {
         if (AppState.currentUser) {
             const name = document.getElementById('profile-fullname');
             const email = document.getElementById('profile-username');
             const role = document.getElementById('profile-role');
+            
             if (name) name.textContent = AppState.currentUser.full_name;
             if (email) email.textContent = AppState.currentUser.email;
             if (role) role.textContent = AppState.currentUser.role;
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // PASSWORD MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async handlePasswordChange(e) {
         e.preventDefault();
         try {
@@ -3104,313 +3258,224 @@ const App = {
                 document.getElementById('confirm-password')?.value
             );
             Utils.showNotification('Password changed successfully', 'success');
-            const form = document.getElementById('password-form');
-            if (form) form.reset();
+            document.getElementById('password-form')?.reset();
         } catch (err) {
-            console.error('Password change failed:', err);
             Utils.showNotification(err.message || 'Password change failed', 'error');
         } finally {
             UIManager.hideLoading();
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // CRUD MODAL HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async showProductModal(id = null) {
-        const modal = document.getElementById('product-modal');
-        if (!modal) return;
-
-        await Promise.all([DataService.loadCategoriesSelect(), DataService.loadBuildingsSelect()]);
-
-        const title = document.getElementById('modal-title');
-
         if (id) {
-            if (title) title.textContent = 'Edit Product';
-            try {
-                const supabase = window.getSupabaseClient();
-                const { data, error } = await supabase
-                    .from(TABLES.PRODUCTS)
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-
-                if (error) throw error;
-
-                if (data) {
-                    if (data.is_active === false) {
-                        Utils.showNotification('This product is archived. Please restore it first to edit.', 'warning');
-                        return;
-                    }
-                    document.getElementById('product-id').value = data.id;
-                    document.getElementById('product-sku').value = data.sku || '';
-                    document.getElementById('product-name').value = data.name || '';
-                    document.getElementById('product-description').value = data.description || '';
-                    document.getElementById('product-category').value = data.category_id || '';
-                    document.getElementById('product-building').value = data.building_id || '';
-                    document.getElementById('product-stock').value = data.stock_quantity || 0;
-                    document.getElementById('product-condition').value = data.condition || PRODUCT_CONDITIONS.DEFAULT;
-                    document.getElementById('product-assigned').value = data.assigned_to || '';
-                }
-            } catch (err) {
-                console.error('Load product failed:', err);
+            const supabase = window.getSupabaseClient();
+            if (!supabase) {
+                Utils.showNotification('Database unavailable', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabase
+                .from(TABLES.PRODUCTS)
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) {
                 Utils.showNotification('Failed to load product', 'error');
                 return;
             }
+            
+            document.getElementById('product-modal-title').textContent = 'Edit Product';
+            document.getElementById('product-id').value = data.id;
+            document.getElementById('product-name').value = data.name || '';
+            document.getElementById('product-sku').value = data.sku || '';
+            document.getElementById('product-description').value = data.description || '';
+            document.getElementById('product-quantity').value = data.stock_quantity || 0;
+            document.getElementById('product-assigned-to').value = data.assigned_to || '';
+            document.getElementById('product-condition').value = data.condition || '';
+            
+            await DataService.loadCategoriesSelect();
+            await DataService.loadBuildingsSelect();
+            
+            if (data.category_id) document.getElementById('product-category').value = data.category_id;
+            if (data.building_id) document.getElementById('product-building').value = data.building_id;
         } else {
-            if (title) title.textContent = 'Add Product';
-            const form = document.getElementById('product-form');
-            if (form) form.reset();
+            document.getElementById('product-modal-title').textContent = 'Add Product';
             document.getElementById('product-id').value = '';
-            document.getElementById('product-stock').value = '0';
-            document.getElementById('product-condition').value = PRODUCT_CONDITIONS.DEFAULT;
-            document.getElementById('product-assigned').value = '';
-
-            const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
-
-            const existingInfo = modal.querySelector('.id-info');
-            if (existingInfo) existingInfo.remove();
-
-            const infoMsg = document.createElement('div');
-            infoMsg.className = 'id-info';
-            infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
-
-            if (nextId) {
-                infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId}`;
-            } else {
-                infoMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> No available IDs. Maximum capacity reached.`;
-                const saveBtn = modal.querySelector('button[type="submit"]');
-                if (saveBtn) saveBtn.disabled = true;
-            }
-
-            const formElement = modal.querySelector('form');
-            if (formElement && !modal.querySelector('.id-info')) {
-                formElement.insertBefore(infoMsg, formElement.firstChild);
-            }
+            document.getElementById('product-form')?.reset();
+            await DataService.loadCategoriesSelect();
+            await DataService.loadBuildingsSelect();
         }
-
+        
         UIManager.openModal('product-modal');
     },
-
+    
     async handleProductSave(e) {
         e.preventDefault();
         const id = document.getElementById('product-id')?.value;
+        
         const data = {
-            sku: document.getElementById('product-sku')?.value?.trim().toUpperCase(),
             name: document.getElementById('product-name')?.value?.trim(),
+            sku: document.getElementById('product-sku')?.value?.trim(),
             description: document.getElementById('product-description')?.value?.trim(),
-            category_id: Utils.parseInteger(document.getElementById('product-category')?.value) || null,
-            building_id: Utils.parseInteger(document.getElementById('product-building')?.value) || null,
-            stock_quantity: Utils.parseInteger(document.getElementById('product-stock')?.value),
-            condition: document.getElementById('product-condition')?.value || PRODUCT_CONDITIONS.DEFAULT,
-            assigned_to: document.getElementById('product-assigned')?.value?.trim() || null
-
+            category_id: document.getElementById('product-category')?.value ? parseInt(document.getElementById('product-category').value) : null,
+            building_id: document.getElementById('product-building')?.value ? parseInt(document.getElementById('product-building').value) : null,
+            stock_quantity: parseInt(document.getElementById('product-quantity')?.value) || 0,
+            assigned_to: document.getElementById('product-assigned-to')?.value?.trim() || null,
+            condition: document.getElementById('product-condition')?.value?.trim() || PRODUCT_CONDITIONS.DEFAULT
         };
-
-        if (!data.name) {
-            Utils.showNotification('Product name is required', 'error');
-            return;
-        }
-
-        if (!data.sku) {
-            Utils.showNotification('SKU is required', 'error');
-            return;
-        }
-
+        
         try {
             await DataService.saveProduct(data, id ? parseInt(id) : null);
             UIManager.closeModal('product-modal');
+            document.getElementById('product-form')?.reset();
         } catch (err) {
-            console.error('Save failed:', err);
-            Utils.showNotification(err.message || 'Save failed', 'error');
+            Utils.showNotification(err.message || 'Failed to save product', 'error');
         }
     },
-
+    
     async showCategoryModal(id = null) {
-        const modal = document.getElementById('category-modal');
-        if (!modal) return;
-
-        const form = document.getElementById('category-form');
-        const existingInfo = modal.querySelector('.id-info');
-        if (existingInfo) existingInfo.remove();
-
         if (id) {
-            const cat = AppState.categories.find(c => c.id === id);
-            if (cat) {
-                document.getElementById('category-id').value = cat.id;
-                document.getElementById('category-name').value = cat.name;
-                document.getElementById('category-description').value = cat.description || '';
-                const title = modal.querySelector('.modal-header h2');
-                if (title) title.textContent = 'Edit Category';
-            } else {
-                const supabase = window.getSupabaseClient();
-                const { data, error } = await supabase
-                    .from(TABLES.CATEGORIES)
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-                if (!error && data) {
-                    document.getElementById('category-id').value = data.id;
-                    document.getElementById('category-name').value = data.name;
-                    document.getElementById('category-description').value = data.description || '';
-                    const title = modal.querySelector('.modal-header h2');
-                    if (title) title.textContent = 'Edit Category';
-                }
+            const supabase = window.getSupabaseClient();
+            if (!supabase) {
+                Utils.showNotification('Database unavailable', 'error');
+                return;
             }
+            
+            const { data, error } = await supabase
+                .from(TABLES.CATEGORIES)
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) {
+                Utils.showNotification('Failed to load category', 'error');
+                return;
+            }
+            
+            document.getElementById('category-modal-title').textContent = 'Edit Category';
+            document.getElementById('category-id').value = data.id;
+            document.getElementById('category-name').value = data.name || '';
+            document.getElementById('category-description').value = data.description || '';
         } else {
-            if (form) form.reset();
+            document.getElementById('category-modal-title').textContent = 'Add Category';
             document.getElementById('category-id').value = '';
-            const title = modal.querySelector('.modal-header h2');
-            if (title) title.textContent = 'Add Category';
-
-            const nextId = await Utils.getNextAvailableId(TABLES.CATEGORIES);
-
-            const infoMsg = document.createElement('div');
-            infoMsg.className = 'id-info';
-            infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
-            infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId || 'None available'}`;
-
-            const formElement = modal.querySelector('form');
-            if (formElement && !modal.querySelector('.id-info')) {
-                formElement.insertBefore(infoMsg, formElement.firstChild);
-            }
+            document.getElementById('category-form')?.reset();
         }
-
+        
         UIManager.openModal('category-modal');
     },
-
+    
     async handleCategorySave(e) {
         e.preventDefault();
         const id = document.getElementById('category-id')?.value;
-        const name = document.getElementById('category-name')?.value?.trim();
-
-        if (!name) {
-            Utils.showNotification('Category name is required', 'error');
-            return;
-        }
-
+        
         const data = {
-            name: name,
-            description: document.getElementById('category-description')?.value?.trim() || null
+            name: document.getElementById('category-name')?.value?.trim(),
+            description: document.getElementById('category-description')?.value?.trim()
         };
-
+        
         try {
             await DataService.saveCategory(data, id ? parseInt(id) : null);
             UIManager.closeModal('category-modal');
+            document.getElementById('category-form')?.reset();
         } catch (err) {
-            console.error('Save failed:', err);
-            Utils.showNotification(err.message || 'Save failed', 'error');
+            Utils.showNotification(err.message || 'Failed to save category', 'error');
         }
     },
-
+    
     async showBuildingModal(id = null) {
-        const modal = document.getElementById('building-modal');
-        if (!modal) return;
-
-        const form = document.getElementById('building-form');
-        const existingInfo = modal.querySelector('.id-info');
-        if (existingInfo) existingInfo.remove();
-
         if (id) {
-            const bld = AppState.buildings.find(b => b.id === id);
-            if (bld) {
-                document.getElementById('building-id').value = bld.id;
-                document.getElementById('building-name').value = bld.name;
-                document.getElementById('building-address').value = bld.location_address || '';
-                const title = modal.querySelector('.modal-header h2');
-                if (title) title.textContent = 'Edit Building';
-            } else {
-                const supabase = window.getSupabaseClient();
-                const { data, error } = await supabase
-                    .from(TABLES.BUILDINGS)
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-                if (!error && data) {
-                    document.getElementById('building-id').value = data.id;
-                    document.getElementById('building-name').value = data.name;
-                    document.getElementById('building-address').value = data.location_address || '';
-                    const title = modal.querySelector('.modal-header h2');
-                    if (title) title.textContent = 'Edit Building';
-                }
+            const supabase = window.getSupabaseClient();
+            if (!supabase) {
+                Utils.showNotification('Database unavailable', 'error');
+                return;
             }
+            
+            const { data, error } = await supabase
+                .from(TABLES.BUILDINGS)
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) {
+                Utils.showNotification('Failed to load building', 'error');
+                return;
+            }
+            
+            document.getElementById('building-modal-title').textContent = 'Edit Building';
+            document.getElementById('building-id').value = data.id;
+            document.getElementById('building-name').value = data.name || '';
+            document.getElementById('building-address').value = data.location_address || '';
         } else {
-            if (form) form.reset();
+            document.getElementById('building-modal-title').textContent = 'Add Building';
             document.getElementById('building-id').value = '';
-            const title = modal.querySelector('.modal-header h2');
-            if (title) title.textContent = 'Add Building';
-
-            const nextId = await Utils.getNextAvailableId(TABLES.BUILDINGS);
-
-            const infoMsg = document.createElement('div');
-            infoMsg.className = 'id-info';
-            infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
-            infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId || 'None available'}`;
-
-            const formElement = modal.querySelector('form');
-            if (formElement && !modal.querySelector('.id-info')) {
-                formElement.insertBefore(infoMsg, formElement.firstChild);
-            }
+            document.getElementById('building-form')?.reset();
         }
-
+        
         UIManager.openModal('building-modal');
     },
-
+    
     async handleBuildingSave(e) {
         e.preventDefault();
         const id = document.getElementById('building-id')?.value;
-        const name = document.getElementById('building-name')?.value?.trim();
-
-        if (!name) {
-            Utils.showNotification('Building name is required', 'error');
-            return;
-        }
-
+        
         const data = {
-            name: name,
-            location_address: document.getElementById('building-address')?.value?.trim() || null
+            name: document.getElementById('building-name')?.value?.trim(),
+            location_address: document.getElementById('building-address')?.value?.trim()
         };
-
+        
         try {
             await DataService.saveBuilding(data, id ? parseInt(id) : null);
             UIManager.closeModal('building-modal');
+            document.getElementById('building-form')?.reset();
         } catch (err) {
-            console.error('Save failed:', err);
-            Utils.showNotification(err.message || 'Save failed', 'error');
+            Utils.showNotification(err.message || 'Failed to save building', 'error');
         }
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // DELETE HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async deleteProduct(id) {
         await DataService.deleteProduct(id);
     },
-
+    
     async deleteCategory(id) {
         await DataService.deleteCategory(id);
     },
-
+    
     async deleteBuilding(id) {
         await DataService.deleteBuilding(id);
     },
-
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // REPORTS
+    // ═══════════════════════════════════════════════════════════════════════
+    
     async showReport(type) {
         const results = document.getElementById('report-results');
         const title = document.getElementById('report-title');
-
+        
         if (!results || !title) return;
-
+        
         results.style.display = 'block';
-
-        const titles = {
+        title.textContent = {
             'stock-summary': 'Stock Summary',
             'category-analysis': 'Category Analysis',
             'building-analysis': 'Building Analysis',
             'movement-history': 'Movement History'
-        };
-
-        title.textContent = titles[type] || 'Report';
-
+        }[type] || 'Report';
+        
         try {
             await DataService.generateReport(type);
             results.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (err) {
-            console.error('Report failed:', err);
             const content = document.getElementById('report-content');
             if (content) {
                 content.innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px">Report generation failed: ${err.message}</p>`;
@@ -3419,10 +3484,10 @@ const App = {
     }
 };
 
-
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL EXPORTS
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+
 window.App = App;
 window.editProduct = (id) => App.showProductModal(id);
 window.deleteProduct = (id) => App.deleteProduct(id);
@@ -3439,6 +3504,11 @@ window.showReport = (type) => App.showReport(type);
 window.filterMovements = () => App.filterMovements();
 window.clearStockForm = () => App.clearStockForm();
 window.toggleInterface = () => App.toggleInterface();
+window.goToPage = (page) => DataService.goToPage(page);
+window.changeItemsPerPage = (value) => DataService.changeItemsPerPage(value);
 
-// Initialize app when DOM is ready
+// ═══════════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
 document.addEventListener('DOMContentLoaded', () => App.init());
