@@ -3271,46 +3271,77 @@ const App = {
     // ═══════════════════════════════════════════════════════════════════════
     
     async showProductModal(id = null) {
+        const modal = document.getElementById('product-modal');
+        if (!modal) return;
+
+        await Promise.all([DataService.loadCategoriesSelect(), DataService.loadBuildingsSelect()]);
+
+        const title = document.getElementById('modal-title');
+
         if (id) {
-            const supabase = window.getSupabaseClient();
-            if (!supabase) {
-                Utils.showNotification('Database unavailable', 'error');
-                return;
-            }
-            
-            const { data, error } = await supabase
-                .from(TABLES.PRODUCTS)
-                .select('*')
-                .eq('id', id)
-                .single();
-            
-            if (error) {
+            if (title) title.textContent = 'Edit Product';
+            try {
+                const supabase = window.getSupabaseClient();
+                const { data, error } = await supabase
+                    .from(TABLES.PRODUCTS)
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    if (data.is_active === false) {
+                        Utils.showNotification('This product is archived. Please restore it first to edit.', 'warning');
+                        return;
+                    }
+                    document.getElementById('product-id').value = data.id;
+                    document.getElementById('product-sku').value = data.sku || '';
+                    document.getElementById('product-name').value = data.name || '';
+                    document.getElementById('product-description').value = data.description || '';
+                    document.getElementById('product-category').value = data.category_id || '';
+                    document.getElementById('product-building').value = data.building_id || '';
+                    document.getElementById('product-stock').value = data.stock_quantity || 0;
+                    document.getElementById('product-condition').value = data.condition || PRODUCT_CONDITIONS.DEFAULT;
+                    document.getElementById('product-assigned').value = data.assigned_to || '';
+                }
+            } catch (err) {
+                console.error('Load product failed:', err);
                 Utils.showNotification('Failed to load product', 'error');
                 return;
             }
-            
-            document.getElementById('product-modal-title').textContent = 'Edit Product';
-            document.getElementById('product-id').value = data.id;
-            document.getElementById('product-name').value = data.name || '';
-            document.getElementById('product-sku').value = data.sku || '';
-            document.getElementById('product-description').value = data.description || '';
-            document.getElementById('product-quantity').value = data.stock_quantity || 0;
-            document.getElementById('product-assigned-to').value = data.assigned_to || '';
-            document.getElementById('product-condition').value = data.condition || '';
-            
-            await DataService.loadCategoriesSelect();
-            await DataService.loadBuildingsSelect();
-            
-            if (data.category_id) document.getElementById('product-category').value = data.category_id;
-            if (data.building_id) document.getElementById('product-building').value = data.building_id;
         } else {
-            document.getElementById('product-modal-title').textContent = 'Add Product';
+            if (title) title.textContent = 'Add Product';
+            const form = document.getElementById('product-form');
+            if (form) form.reset();
             document.getElementById('product-id').value = '';
-            document.getElementById('product-form')?.reset();
-            await DataService.loadCategoriesSelect();
-            await DataService.loadBuildingsSelect();
+            document.getElementById('product-stock').value = '0';
+            document.getElementById('product-condition').value = PRODUCT_CONDITIONS.DEFAULT;
+            document.getElementById('product-assigned').value = '';
+
+            const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
+
+            const existingInfo = modal.querySelector('.id-info');
+            if (existingInfo) existingInfo.remove();
+
+            const infoMsg = document.createElement('div');
+            infoMsg.className = 'id-info';
+            infoMsg.style.cssText = 'background:#2f3850;padding:12px;border-radius:6px;margin-bottom:15px;border-left:4px solid #2196f3;';
+
+            if (nextId) {
+                infoMsg.innerHTML = `<i class="fas fa-info-circle"></i> <strong>Auto-assigned ID:</strong> ${nextId}`;
+            } else {
+                infoMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> No available IDs. Maximum capacity reached.`;
+                const saveBtn = modal.querySelector('button[type="submit"]');
+                if (saveBtn) saveBtn.disabled = true;
+            }
+
+            const formElement = modal.querySelector('form');
+            if (formElement && !modal.querySelector('.id-info')) {
+                formElement.insertBefore(infoMsg, formElement.firstChild);
+            }
         }
-        
+
         UIManager.openModal('product-modal');
     },
     
