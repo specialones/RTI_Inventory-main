@@ -13,6 +13,9 @@
  * - Interface toggle (Computer Equipment & Electronics / Office Supplies & Consumables)
  * - Sidebar toggle button for switching interfaces
  * - Pagination for Assets Management with navigation buttons
+ * - Clickable sidebar toggle on all devices
+ * - Full search across all fields with pagination support
+ * - Search on Enter key press only
  */
 'use strict';
 
@@ -362,7 +365,7 @@ function injectStyles() {
                 background: rgba(67, 97, 238, 0.2);
                 color: #daf0ea;
                 border: 1px solid rgba(67, 97, 238, 0.3);
-}
+            }
             .database-indicator.interface2 {
                 background: rgba(99,102,241,0.5);
                 color: #daf0ea;
@@ -442,14 +445,17 @@ function injectStyles() {
         gridStyle.textContent = `
             .dashboard-grid-secondary {
                 display: grid;
-                grid-template-columns: repeat(2,1fr);
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(4, 1fr);
                 gap: 20px;
                 margin-bottom: 40px;
-                margin-top: 40px;
+                margin-top: 20px;
             }
+            
             .dashboard-buildings {
                 margin-top: 10px;
             }
+            
             .dashboard-buildings-title {
                 font-size: 20px;
                 font-weight: 600;
@@ -457,21 +463,33 @@ function injectStyles() {
                 margin-bottom: 25px;
                 padding-bottom: 12px;
                 border-bottom: 2px solid rgba(255,255,255,0.1);
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
+            
+            .dashboard-buildings-title i {
+                color: #06d6a0;
+                font-size: 22px;
+            }
+            
             .building-cards-grid {
                 display: grid;
-                grid-template-columns: repeat(4,1fr);
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(2, 1fr);
                 gap: 20px;
             }
-            @media(max-width:1400px) {
+            
+            @media(max-width: 1400px) {
                 .dashboard-grid-secondary {
-                    grid-template-columns: repeat(2,1fr);
+                    grid-template-columns: repeat(2, 1fr);
                 }
                 .building-cards-grid {
-                    grid-template-columns: repeat(2,1fr);
+                    grid-template-columns: repeat(2, 1fr);
                 }
             }
-            @media(max-width:768px) {
+            
+            @media(max-width: 768px) {
                 .dashboard-grid-secondary {
                     grid-template-columns: 1fr;
                 }
@@ -479,8 +497,9 @@ function injectStyles() {
                     grid-template-columns: 1fr;
                 }
             }
+            
             .stat-card-mini {
-                background: linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);
+                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
                 border-radius: 16px;
                 padding: 25px;
                 border: 1px solid rgba(255,255,255,0.05);
@@ -490,6 +509,7 @@ function injectStyles() {
                 display: flex;
                 flex-direction: column;
             }
+            
             .stat-card-mini::before {
                 content: '';
                 position: absolute;
@@ -497,18 +517,21 @@ function injectStyles() {
                 left: 0;
                 right: 0;
                 height: 4px;
-                background: linear-gradient(90deg,var(--accent-color,#4361ee) 0%,transparent 100%);
+                background: linear-gradient(90deg, var(--accent-color, #4361ee) 0%, transparent 100%);
                 opacity: 0.5;
             }
+            
             .stat-card-mini:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgb(70, 90, 202);
+                box-shadow: 0 8px 25px rgba(70, 90, 202, 0.3);
             }
+            
             .mini-card-header {
                 margin-bottom: 20px;
             }
+            
             .mini-card-name {
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: 600;
                 color: #fff;
                 display: flex;
@@ -516,11 +539,12 @@ function injectStyles() {
                 gap: 12px;
                 margin-bottom: 6px;
             }
+            
             .mini-card-icon {
                 width: 42px;
                 height: 42px;
                 border-radius: 12px;
-                background: var(--icon-bg,linear-gradient(135deg,#4361ee 0%,#7209b7 100%));
+                background: var(--icon-bg, linear-gradient(135deg, #4361ee 0%, #7209b7 100%));
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -528,6 +552,7 @@ function injectStyles() {
                 color: white;
                 flex-shrink: 0;
             }
+            
             .mini-card-stats {
                 margin-top: auto;
                 text-align: center;
@@ -536,19 +561,22 @@ function injectStyles() {
                 border-radius: 12px;
                 border: 1px solid rgba(255,255,255,0.05);
             }
+            
             .mini-card-value {
                 font-size: 42px;
                 font-weight: 700;
                 margin-bottom: 4px;
-                font-family: 'Courier New',monospace;
+                font-family: 'Courier New', monospace;
             }
+            
             .mini-card-desc {
                 font-size: 12px;
                 color: #9e9e9e;
             }
+            
             .building-card {
-                background: linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);
-                border-radius: 10px;
+                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
+                border-radius: 16px;
                 padding: 25px;
                 border: 1px solid rgba(255,255,255,0.05);
                 transition: all 0.3s ease;
@@ -556,9 +584,8 @@ function injectStyles() {
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                margin-top: 40px;
-                margin-bottom: 40px;
             }
+            
             .building-card::before {
                 content: '';
                 position: absolute;
@@ -566,15 +593,18 @@ function injectStyles() {
                 left: 0;
                 right: 0;
                 height: 4px;
-                background: linear-gradient(90deg,#4361ee 0%,#7209b7 100%);
+                background: linear-gradient(90deg, #4361ee 0%, #7209b7 100%);
             }
+            
             .building-card:hover {
-               transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgb(70, 90, 202);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(70, 90, 202, 0.3);
             }
+            
             .building-card-header {
                 margin-bottom: 20px;
             }
+            
             .building-card-name {
                 font-size: 16px;
                 font-weight: 600;
@@ -584,18 +614,24 @@ function injectStyles() {
                 gap: 12px;
                 margin-bottom: 6px;
             }
+            
             .building-card-location {
                 font-size: 13px;
                 color: #9e9e9e;
                 margin-top: 4px;
                 padding-left: 3px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
+            
             .building-card-stats {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
                 gap: 12px;
                 margin-top: auto;
             }
+            
             .building-stat-item {
                 text-align: center;
                 padding: 15px 10px;
@@ -603,13 +639,15 @@ function injectStyles() {
                 border-radius: 12px;
                 border: 1px solid rgba(255,255,255,0.05);
             }
+            
             .building-stat-value {
-                font-size: 24px;
+                font-size: 36px;
                 font-weight: 700;
                 color: #06d6a0;
-                font-family: 'Courier New',monospace;
+                font-family: 'Courier New', monospace;
                 margin-bottom: 4px;
             }
+            
             .building-stat-label {
                 font-size: 11px;
                 color: #9e9e9e;
@@ -617,56 +655,98 @@ function injectStyles() {
                 letter-spacing: 0.5px;
                 font-weight: 500;
             }
-            .interface-2 .db-info-banner {
-                background: linear-gradient(135deg,rgba(99,102,241,0.12) 0%,rgba(139,92,246,0.12) 100%);
-                border: 1px solid rgba(99,102,241,0.2);
-            }
-            .db-info-banner i {
-                font-size: 20px;
-                color: #06d6a0;
-            }
-            .interface-2 .db-info-banner i {
-                color: #818cf8;
-            }
-            .db-info-text {
-                font-size: 14px;
-                color: #e0e0e0;
-            }
-            .db-info-text strong {
-                color: #06d6a0;
-            }
-            .interface-2 .db-info-text strong {
-                color: #818cf8;
-            }
+            
             .interface-2 .stat-card-mini {
                 border-radius: 12px;
                 border: 1px solid rgba(99,102,241,0.15);
-                background: linear-gradient(135deg,#1e2440 0%,#161b33 100%);
+                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
             }
+            
             .interface-2 .stat-card-mini::before {
-                background: linear-gradient(90deg,#818cf8 0%,transparent 100%);
+                background: linear-gradient(90deg, #818cf8 0%, transparent 100%);
             }
+            
             .interface-2 .mini-card-icon {
                 border-radius: 10px;
-                background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             }
+            
             .interface-2 .building-card {
                 border-radius: 12px;
                 border: 1px solid rgba(99,102,241,0.15);
-                background: linear-gradient(135deg,#1e2440 0%,#161b33 100%);
+                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
             }
+            
             .interface-2 .building-card::before {
-                background: linear-gradient(90deg,#6366f1 0%,#8b5cf6 100%);
+                background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
             }
-            .interface-2 .building-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgb(70, 90, 202);
-            }
+            
             .interface-2 .building-stat-value {
                 color: #818cf8;
             }
         `;
         document.head.appendChild(gridStyle);
+    }
+
+    // Sidebar Clickable Styles
+    if (!document.querySelector('#sidebar-clickable-styles')) {
+        const sidebarStyle = document.createElement('style');
+        sidebarStyle.id = 'sidebar-clickable-styles';
+        sidebarStyle.textContent = `
+            .sidebar {
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            
+            .sidebar .nav-item,
+            .sidebar button,
+            .sidebar a,
+            .sidebar input,
+            .sidebar select,
+            .sidebar textarea {
+                cursor: pointer;
+            }
+            
+            .sidebar-header {
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+            
+            .sidebar-header:hover {
+                background-color: rgba(255, 255, 255, 0);
+            }
+            
+            .sidebar-footer {
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+            
+            .sidebar-footer:hover {
+                background-color: rgba(255, 255, 255, 0);
+            }
+            
+            .sidebar-toggle-hint {
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                color: var(--text-secondary);
+                font-size: 12px;
+            }
+            
+            .sidebar:hover .sidebar-toggle-hint {
+                opacity: 1;
+            }
+            
+            @media (max-width: 768px) {
+                .sidebar-toggle-hint {
+                    display: none;
+                }
+            }
+        `;
+        document.head.appendChild(sidebarStyle);
     }
 }
 
@@ -688,6 +768,8 @@ const AppState = {
     clockInterval: null,
     showArchived: false,
     currentInterface: 'interface1',
+    currentSearchTerm: null,
+    currentSearchType: null,
     
     pagination: {
         currentPage: 1,
@@ -704,6 +786,8 @@ const AppState = {
             movements: [],
             selectedProductId: null,
             showArchived: false,
+            currentSearchTerm: null,
+            currentSearchType: null,
             pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         },
         interface2: {
@@ -713,6 +797,8 @@ const AppState = {
             movements: [],
             selectedProductId: null,
             showArchived: false,
+            currentSearchTerm: null,
+            currentSearchType: null,
             pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         }
     },
@@ -728,16 +814,20 @@ const AppState = {
         this.isLoading = false;
         this.showArchived = false;
         this.currentInterface = 'interface1';
+        this.currentSearchTerm = null;
+        this.currentSearchType = null;
         this.pagination = { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 };
         this.interfaceStates = {
             interface1: {
                 products: [], categories: [], buildings: [], movements: [],
                 selectedProductId: null, showArchived: false,
+                currentSearchTerm: null, currentSearchType: null,
                 pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
             },
             interface2: {
                 products: [], categories: [], buildings: [], movements: [],
                 selectedProductId: null, showArchived: false,
+                currentSearchTerm: null, currentSearchType: null,
                 pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
             }
         };
@@ -756,6 +846,8 @@ const AppState = {
             movements: [...this.movements],
             selectedProductId: this.selectedProductId,
             showArchived: this.showArchived,
+            currentSearchTerm: this.currentSearchTerm,
+            currentSearchType: this.currentSearchType,
             pagination: { ...this.pagination }
         };
     },
@@ -770,6 +862,8 @@ const AppState = {
             this.movements = [...state.movements];
             this.selectedProductId = state.selectedProductId;
             this.showArchived = state.showArchived;
+            this.currentSearchTerm = state.currentSearchTerm;
+            this.currentSearchType = state.currentSearchType;
             this.pagination = { ...state.pagination };
         }
     },
@@ -1365,7 +1459,6 @@ const DataService = {
         const damagedProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('damaged')).length || 0;
         const assignedProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('assigned')).length || 0;
         const workingProducts = totalProducts - defectiveProducts - damagedProducts;
-        const outOfStockProducts = products?.filter(p => (p.stock_quantity || 0) === 0).length || 0;
         
         // Get today's movements
         const today = new Date().toISOString().split('T')[0];
@@ -1389,31 +1482,107 @@ const DataService = {
             .from(TABLES.BUILDINGS)
             .select('*, products:products(id, stock_quantity)');
         
-        const buildingStats = (buildings || []).map(building => {
+        // Get category stats with products
+        const { data: categories } = await supabase
+            .from(TABLES.CATEGORIES)
+            .select('*, products:products(id, stock_quantity)')
+            .order('id', { ascending: true });
+        
+        // Group buildings: Voyager (A, B, C combined), Mabini (A, B, C combined)
+        const voyagerBuildings = [];
+        const mabiniBuildings = [];
+        const otherBuildings = [];
+        
+        (buildings || []).forEach(building => {
+            const buildingName = (building.name || '').toLowerCase();
+            
+            if (buildingName.includes('voyager') && !buildingName.includes('storage')) {
+                voyagerBuildings.push(building);
+            }
+            else if (buildingName.includes('mabini') && !buildingName.includes('storage')) {
+                mabiniBuildings.push(building);
+            }
+            else if (!buildingName.includes('mabini storage')) {
+                otherBuildings.push(building);
+            }
+        });
+        
+        // Calculate Voyager combined stats
+        const voyagerTotalUnits = voyagerBuildings.reduce((sum, building) => {
             const buildingProducts = building.products || [];
-            return {
+            return sum + buildingProducts.reduce((pSum, p) => pSum + (p.stock_quantity || 0), 0);
+        }, 0);
+        
+        // Calculate Mabini combined stats
+        const mabiniTotalUnits = mabiniBuildings.reduce((sum, building) => {
+            const buildingProducts = building.products || [];
+            return sum + buildingProducts.reduce((pSum, p) => pSum + (p.stock_quantity || 0), 0);
+        }, 0);
+        
+        // Create building stats array
+        let buildingStats = [];
+        
+        if (voyagerBuildings.length > 0) {
+            buildingStats.push({
+                id: 'voyager-combined',
+                name: 'Voyager',
+                total_units: voyagerTotalUnits,
+                product_count: voyagerBuildings.reduce((sum, b) => sum + (b.products || []).length, 0),
+            });
+        }
+        
+        if (mabiniBuildings.length > 0) {
+            buildingStats.push({
+                id: 'mabini-combined',
+                name: 'Mabini',
+                total_units: mabiniTotalUnits,
+                product_count: mabiniBuildings.reduce((sum, b) => sum + (b.products || []).length, 0),
+                location: 'Davao City'
+            });
+        }
+        
+        otherBuildings.forEach(building => {
+            const buildingProducts = building.products || [];
+            buildingStats.push({
                 id: building.id,
                 name: building.name,
                 total_units: buildingProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0),
                 product_count: buildingProducts.length,
                 location: building.location_address || 'N/A'
-            };
+            });
+        });
+        
+        // Create category stats array
+        let categoryStats = [];
+        
+        (categories || []).forEach(category => {
+            const categoryProducts = category.products || [];
+            const totalUnits = categoryProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+            
+            if (categoryProducts.length > 0) {
+                categoryStats.push({
+                    id: category.id,
+                    name: category.name,
+                    total_units: totalUnits,
+                    product_count: categoryProducts.length
+                });
+            }
         });
         
         return {
             total_products: totalProducts,
             total_items: totalItems,
-            total_value: totalItems,
             working_products: workingProducts,
             defective_products: defectiveProducts,
             damaged_products: damagedProducts,
             assigned_products: assignedProducts,
-            out_of_stock: outOfStockProducts,
+            out_of_stock: products?.filter(p => (p.stock_quantity || 0) === 0).length || 0,
             today_inbound: todayInbound,
             today_outbound: todayOutbound,
             categories_count: categoriesCount || 0,
             buildings_count: buildings?.length || 0,
-            building_stats: buildingStats
+            building_stats: buildingStats,
+            category_stats: categoryStats
         };
     },
     
@@ -1421,16 +1590,12 @@ const DataService = {
         const container = document.getElementById('stats-container');
         if (!container) return;
         
-        const isInterface2 = AppState.currentInterface === 'interface2';
-        const dbLabel = AppState.getCurrentInterfaceLabel();
-        const shortLabel = AppState.getCurrentInterfaceShortLabel();
-        
+        // Building cards HTML
         const buildingCardsHTML = stats.building_stats.map(building => `
             <div class="building-card">
                 <div class="building-card-header">
                     <div class="building-card-name">${Utils.escapeHtml(building.name)}</div>
                     <div class="building-card-location">
-                        <i class="fas fa-map-marker-alt"></i> ${Utils.escapeHtml(building.location)}
                     </div>
                 </div>
                 <div class="building-card-stats">
@@ -1442,8 +1607,24 @@ const DataService = {
             </div>
         `).join('');
         
+        // Category cards HTML
+        const categoryCardsHTML = stats.category_stats && stats.category_stats.length > 0 
+            ? stats.category_stats.map(category => `
+                <div class="building-card">
+                    <div class="building-card-header">
+                        <div class="building-card-name">${Utils.escapeHtml(category.name)}</div>
+                    </div>
+                    <div class="building-card-stats">
+                        <div class="building-stat-item">
+                            <div class="building-stat-value">${category.total_units.toLocaleString()}</div>
+                            <div class="building-stat-label">TOTAL ASSETS</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')
+            : '';
+        
         container.innerHTML = `
-            
             <div class="dashboard-grid-secondary">
                 <div class="stat-card-mini" style="--accent-color:#06d6a0;--icon-bg:linear-gradient(135deg,#06d6a0 0%,#1b5e20 100%)">
                     <div class="mini-card-header">
@@ -1499,12 +1680,24 @@ const DataService = {
             </div>
             
             <div class="dashboard-buildings">
-                ${isInterface2 ? `
-                ` : ''}
+                <h3 class="dashboard-buildings-title">
+                    <i class="fas fa-building"></i> Building Analysis
+                </h3>
                 <div class="building-cards-grid">
                     ${buildingCardsHTML}
                 </div>
             </div>
+            
+            ${categoryCardsHTML ? `
+            <div class="dashboard-buildings">
+                <h3 class="dashboard-buildings-title">
+                    <i class="fas fa-tags"></i> Category Analysis
+                </h3>
+                <div class="building-cards-grid">
+                    ${categoryCardsHTML}
+                </div>
+            </div>
+            ` : ''}
         `;
     },
     
@@ -1555,7 +1748,21 @@ const DataService = {
         const { currentPage, totalPages, totalItems, itemsPerPage } = AppState.pagination;
         
         if (totalItems === 0) {
-            paginationContainer.innerHTML = '';
+            paginationContainer.innerHTML = `
+                <div class="pagination-wrapper">
+                    <div class="pagination-info">No items found</div>
+                    <div class="pagination-per-page">
+                        <label for="items-per-page">Items per page:</label>
+                        <select id="items-per-page" onchange="window.changeItemsPerPage(this.value)">
+                            <option value="5" ${itemsPerPage === 5 ? 'selected' : ''}>5</option>
+                            <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                            <option value="25" ${itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                            <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${itemsPerPage === 100 ? 'selected' : ''}>100</option>
+                        </select>
+                    </div>
+                </div>
+            `;
             return;
         }
         
@@ -1660,14 +1867,26 @@ const DataService = {
     
     async goToPage(page) {
         if (page < 1 || page > AppState.pagination.totalPages) return;
-        await this.loadProductsPaginated(page);
+        
+        // Check if we're in search mode
+        if (AppState.currentSearchTerm) {
+            await this.searchProductsPaginated(AppState.currentSearchTerm, page);
+        } else {
+            await this.loadProductsPaginated(page);
+        }
     },
     
     async changeItemsPerPage(value) {
         const itemsPerPage = parseInt(value);
         AppState.pagination.itemsPerPage = itemsPerPage;
         AppState.pagination.currentPage = 1;
-        await this.loadProductsPaginated(1);
+        
+        // Check if we're in search mode
+        if (AppState.currentSearchTerm) {
+            await this.searchProductsPaginated(AppState.currentSearchTerm, 1);
+        } else {
+            await this.loadProductsPaginated(1);
+        }
     },
     
     // ═══════════════════════════════════════════════════════════════════════
@@ -1737,38 +1956,74 @@ const DataService = {
             if (!supabase) throw new Error('Database unavailable');
             
             if (!term?.trim()) {
+                AppState.currentSearchTerm = null;
+                AppState.currentSearchType = null;
                 await this.loadProductsPaginated(1);
                 return;
             }
             
             const search = term.trim().toLowerCase();
             
-            // Check for category filter
+            // Check for category filter: category:CategoryName
             const categoryMatch = search.match(/^category:\s*(.+)$/i);
             if (categoryMatch) {
+                AppState.currentSearchTerm = search;
+                AppState.currentSearchType = 'category';
                 await this.filterProductsByCategory(categoryMatch[1].trim());
                 return;
             }
             
-            const isNumericSearch = /^\d+$/.test(search);
-            let query = supabase
-                .from(TABLES.PRODUCTS)
-                .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
-            
-            if (!AppState.showArchived) {
-                query = query.eq('is_active', true);
+            // Check for building filter: building:BuildingName
+            const buildingMatch = search.match(/^building:\s*(.+)$/i);
+            if (buildingMatch) {
+                AppState.currentSearchTerm = search;
+                AppState.currentSearchType = 'building';
+                await this.filterProductsByField('building', buildingMatch[1].trim());
+                return;
             }
             
+            // Check for assigned_to filter: assigned:PersonName
+            const assignedMatch = search.match(/^assigned:\s*(.+)$/i);
+            if (assignedMatch) {
+                AppState.currentSearchTerm = search;
+                AppState.currentSearchType = 'assigned';
+                await this.filterProductsByField('assigned', assignedMatch[1].trim());
+                return;
+            }
+            
+            // Check for condition filter: condition:ConditionName
+            const conditionMatch = search.match(/^condition:\s*(.+)$/i);
+            if (conditionMatch) {
+                AppState.currentSearchTerm = search;
+                AppState.currentSearchType = 'condition';
+                await this.filterProductsByField('condition', conditionMatch[1].trim());
+                return;
+            }
+            
+            const isNumericSearch = /^\d+$/.test(search);
+            
             if (isNumericSearch) {
+                // Handle exact ID search
                 const idNumber = parseInt(search, 10);
                 const idValidation = Utils.validateIdRange(idNumber);
                 
                 if (idValidation.valid) {
+                    let query = supabase
+                        .from(TABLES.PRODUCTS)
+                        .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
+                    
+                    if (!AppState.showArchived) {
+                        query = query.eq('is_active', true);
+                    }
+                    
                     query = query.eq('id', idNumber);
+                    
                     const { data, error, count } = await query;
                     
                     if (error) throw error;
                     
+                    AppState.currentSearchTerm = search;
+                    AppState.currentSearchType = 'id';
                     AppState.products = data || [];
                     this.renderProductsTable(data || [], idNumber);
                     AppState.pagination.totalItems = count || 0;
@@ -1787,21 +2042,12 @@ const DataService = {
                     this.renderPagination();
                 }
             } else {
-                query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,description.ilike.%${search}%`);
-                const { data, error, count } = await query.order('id', { ascending: true });
+                // Store the current search term in AppState for pagination
+                AppState.currentSearchTerm = search;
+                AppState.currentSearchType = 'general';
                 
-                if (error) throw error;
-                
-                AppState.products = data || [];
-                this.renderProductsTable(data || []);
-                AppState.pagination.totalItems = count || 0;
-                AppState.pagination.totalPages = Math.ceil((count || 0) / AppState.pagination.itemsPerPage);
-                AppState.pagination.currentPage = 1;
-                this.renderPagination();
-                
-                if (data?.length === 0) {
-                    Utils.showNotification('No products found matching your search', 'info');
-                }
+                // Perform paginated search
+                await this.searchProductsPaginated(search, 1);
             }
         } catch (error) {
             console.error('Search failed:', error);
@@ -1810,8 +2056,206 @@ const DataService = {
         }
     },
     
+    // Paginated search across all fields
+    async searchProductsPaginated(searchTerm, page = 1) {
+        try {
+            UIManager.showLoading();
+            const supabase = window.getSupabaseClient();
+            if (!supabase) throw new Error('Database unavailable');
+            
+            const perPage = AppState.pagination.itemsPerPage;
+            const from = (page - 1) * perPage;
+            const to = from + perPage - 1;
+            const searchPattern = `%${searchTerm}%`;
+            
+            // Collect all matching product IDs from all sources
+            let allMatchingIds = new Set();
+            
+            // Search in main product fields
+            let productsQuery = supabase
+                .from(TABLES.PRODUCTS)
+                .select('id');
+            
+            if (!AppState.showArchived) {
+                productsQuery = productsQuery.eq('is_active', true);
+            }
+            
+            productsQuery = productsQuery.or(
+                `name.ilike.${searchPattern},` +
+                `sku.ilike.${searchPattern},` +
+                `description.ilike.${searchPattern},` +
+                `assigned_to.ilike.${searchPattern},` +
+                `condition.ilike.${searchPattern}`
+            );
+            
+            const { data: productMatches, error: productError } = await productsQuery;
+            
+            if (productError) throw productError;
+            
+            (productMatches || []).forEach(p => allMatchingIds.add(p.id));
+            
+            // Search in categories
+            const { data: matchingCategories } = await supabase
+                .from(TABLES.CATEGORIES)
+                .select('id')
+                .ilike('name', searchPattern);
+            
+            const categoryIds = (matchingCategories || []).map(c => c.id);
+            
+            if (categoryIds.length > 0) {
+                let categoryProductsQuery = supabase
+                    .from(TABLES.PRODUCTS)
+                    .select('id');
+                
+                if (!AppState.showArchived) {
+                    categoryProductsQuery = categoryProductsQuery.eq('is_active', true);
+                }
+                
+                categoryProductsQuery = categoryProductsQuery.in('category_id', categoryIds);
+                
+                const { data: categoryProductMatches } = await categoryProductsQuery;
+                (categoryProductMatches || []).forEach(p => allMatchingIds.add(p.id));
+            }
+            
+            // Search in buildings
+            const { data: matchingBuildings } = await supabase
+                .from(TABLES.BUILDINGS)
+                .select('id')
+                .ilike('name', searchPattern);
+            
+            const buildingIds = (matchingBuildings || []).map(b => b.id);
+            
+            if (buildingIds.length > 0) {
+                let buildingProductsQuery = supabase
+                    .from(TABLES.PRODUCTS)
+                    .select('id');
+                
+                if (!AppState.showArchived) {
+                    buildingProductsQuery = buildingProductsQuery.eq('is_active', true);
+                }
+                
+                buildingProductsQuery = buildingProductsQuery.in('building_id', buildingIds);
+                
+                const { data: buildingProductMatches } = await buildingProductsQuery;
+                (buildingProductMatches || []).forEach(p => allMatchingIds.add(p.id));
+            }
+            
+            const matchingIdArray = Array.from(allMatchingIds).sort((a, b) => a - b);
+            const totalItems = matchingIdArray.length;
+            const totalPages = Math.ceil(totalItems / perPage);
+            
+            // Get the IDs for the current page
+            const pageIds = matchingIdArray.slice(from, to + 1);
+            
+            // Fetch full product data for the current page
+            let finalQuery = supabase
+                .from(TABLES.PRODUCTS)
+                .select(`*, categories:category_id(name), buildings:building_id(name)`)
+                .in('id', pageIds)
+                .order('id', { ascending: true });
+            
+            const { data: paginatedProducts, error: finalError } = await finalQuery;
+            
+            if (finalError) throw finalError;
+            
+            // Sort results to match the order of pageIds
+            const sortedProducts = pageIds.map(id => 
+                (paginatedProducts || []).find(p => p.id === id)
+            ).filter(Boolean);
+            
+            // Update state
+            AppState.products = sortedProducts;
+            AppState.pagination.totalItems = totalItems;
+            AppState.pagination.totalPages = totalPages;
+            AppState.pagination.currentPage = page;
+            AppState.pagination.itemsPerPage = perPage;
+            
+            this.renderProductsTable(sortedProducts);
+            this.renderPagination();
+            
+            if (sortedProducts.length === 0) {
+                Utils.showNotification('No products found matching your search', 'info');
+            } else if (page === 1) {
+                Utils.showNotification(`Found ${totalItems} product(s) matching "${searchTerm}"`, 'success');
+            }
+            
+        } catch (error) {
+            console.error('Paginated search failed:', error);
+            throw error;
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+    
+    // Filter products by field
+    async filterProductsByField(field, value) {
+        try {
+            UIManager.showLoading();
+            const supabase = window.getSupabaseClient();
+            if (!supabase) throw new Error('Database unavailable');
+            
+            let query = supabase
+                .from(TABLES.PRODUCTS)
+                .select(`*, categories:category_id(name), buildings:building_id(name)`, { count: 'exact' });
+            
+            if (!AppState.showArchived) {
+                query = query.eq('is_active', true);
+            }
+            
+            const fieldLabels = {
+                'building': 'Building',
+                'assigned': 'Assigned To',
+                'condition': 'Condition'
+            };
+            
+            switch (field) {
+                case 'building':
+                    query = query.filter('buildings.name', 'ilike', `%${value}%`);
+                    break;
+                    
+                case 'assigned':
+                    query = query.ilike('assigned_to', `%${value}%`);
+                    break;
+                    
+                case 'condition':
+                    query = query.ilike('condition', `%${value}%`);
+                    break;
+                    
+                default:
+                    throw new Error(`Unknown filter type: ${field}`);
+            }
+            
+            const { data, error, count } = await query.order('id', { ascending: true });
+            
+            if (error) throw error;
+            
+            AppState.products = data || [];
+            this.renderProductsTable(data || []);
+            AppState.pagination.totalItems = count || 0;
+            AppState.pagination.totalPages = Math.ceil((count || 0) / AppState.pagination.itemsPerPage);
+            AppState.pagination.currentPage = 1;
+            this.renderPagination();
+            
+            const fieldLabel = fieldLabels[field] || field;
+            
+            if (!data || data.length === 0) {
+                Utils.showNotification(`No products found with ${fieldLabel.toLowerCase()} matching "${value}"`, 'info');
+            } else {
+                Utils.showNotification(`Found ${data.length} product(s) with ${fieldLabel.toLowerCase()} matching "${value}"`, 'success');
+            }
+        } catch (error) {
+            console.error(`${field} filter failed:`, error);
+            Utils.showNotification(`Filter failed: ${error.message}`, 'error');
+            this.renderProductsTable([]);
+            this.renderPagination();
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+    
     async filterProductsByCategory(categoryName) {
         try {
+            UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -1846,6 +2290,8 @@ const DataService = {
             Utils.showNotification('Category filter failed: ' + error.message, 'error');
             this.renderProductsTable([]);
             this.renderPagination();
+        } finally {
+            UIManager.hideLoading();
         }
     },
     
@@ -1927,7 +2373,13 @@ const DataService = {
                 }
             }
             
-            await this.loadProductsPaginated(AppState.pagination.currentPage);
+            // Reload products based on current state
+            if (AppState.currentSearchTerm) {
+                await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
+            } else {
+                await this.loadProductsPaginated(AppState.pagination.currentPage);
+            }
+            
             Utils.showNotification(`Product ${id ? 'updated' : 'created'} successfully`, 'success');
             return true;
         } catch (error) {
@@ -1982,7 +2434,11 @@ const DataService = {
                     if (error) throw error;
                     
                     Utils.showNotification('Product permanently deleted', 'success');
-                    await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    if (AppState.currentSearchTerm) {
+                        await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
+                    } else {
+                        await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    }
                 }
                 return true;
             }
@@ -2005,7 +2461,11 @@ const DataService = {
                     if (error) throw error;
                     
                     Utils.showNotification('Product archived successfully', 'warning');
-                    await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    if (AppState.currentSearchTerm) {
+                        await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
+                    } else {
+                        await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    }
                 }
             } else {
                 if (confirm(`Delete product "${product.name}"? This action cannot be undone.`)) {
@@ -2017,7 +2477,11 @@ const DataService = {
                     if (error) throw error;
                     
                     Utils.showNotification('Product deleted successfully', 'success');
-                    await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    if (AppState.currentSearchTerm) {
+                        await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
+                    } else {
+                        await this.loadProductsPaginated(AppState.pagination.currentPage);
+                    }
                 }
             }
             
@@ -2044,7 +2508,11 @@ const DataService = {
             if (error) throw error;
             
             Utils.showNotification('Product restored successfully', 'success');
-            await this.loadProductsPaginated(AppState.pagination.currentPage);
+            if (AppState.currentSearchTerm) {
+                await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
+            } else {
+                await this.loadProductsPaginated(AppState.pagination.currentPage);
+            }
             return true;
         } catch (error) {
             console.error('Product restore failed:', error);
@@ -2057,7 +2525,12 @@ const DataService = {
         AppState.showArchived = !AppState.showArchived;
         const btn = document.getElementById('toggle-archived');
         if (btn) btn.textContent = AppState.showArchived ? 'Hide Archived' : 'Show Archived';
-        await this.loadProductsPaginated(1);
+        
+        if (AppState.currentSearchTerm) {
+            await this.searchProductsPaginated(AppState.currentSearchTerm, 1);
+        } else {
+            await this.loadProductsPaginated(1);
+        }
     },
     
     // ═══════════════════════════════════════════════════════════════════════
@@ -2324,49 +2797,175 @@ const DataService = {
     // STOCK MANAGEMENT METHODS
     // ═══════════════════════════════════════════════════════════════════════
     
-    async loadStockView() {
-        try {
-            UIManager.showLoading();
-            const supabase = window.getSupabaseClient();
-            if (!supabase) throw new Error('Database unavailable');
-            
-            const { data, error } = await supabase
-                .from(TABLES.PRODUCTS)
-                .select('id, name, stock_quantity, condition')
-                .eq('is_active', true)
-                .ilike('condition', '%defective%')
-                .order('id', { ascending: true });
-            
-            if (error) throw error;
-            
-            AppState.products = data || [];
-            this.populateProductSelect(AppState.products);
-            await this.loadAllMovements();
-        } catch (error) {
-            console.error('Stock view load failed:', error);
-            UIManager.showError('stock-error', 'Failed to load stock view');
-        } finally {
-            UIManager.hideLoading();
-        }
-    },
+    // Add this method to the DataService object (around line 1500-1600 area)
+
+async loadStockView() {
+    try {
+        UIManager.showLoading();
+        const supabase = window.getSupabaseClient();
+        if (!supabase) throw new Error('Database unavailable');
+        
+        const { data, error } = await supabase
+            .from(TABLES.PRODUCTS)
+            .select('id, name, sku, stock_quantity, condition')
+            .eq('is_active', true)
+            .ilike('condition', '%defective%')
+            .order('id', { ascending: true });
+        
+        if (error) throw error;
+        
+        AppState.products = data || [];
+        this.populateProductSelect(AppState.products);
+        await this.loadAllMovements();
+    } catch (error) {
+        console.error('Stock view load failed:', error);
+        UIManager.showError('stock-error', 'Failed to load stock view');
+    } finally {
+        UIManager.hideLoading();
+    }
+},
+
+// Update the populateProductSelect method in DataService
+populateProductSelect(products) {
+    const select = document.getElementById('stock-product');
+    if (!select) return;
     
-    populateProductSelect(products) {
-        const select = document.getElementById('stock-product');
-        if (!select) return;
+    if (!products || products.length === 0) {
+        select.innerHTML = '<option value="">No defective products found</option>';
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Select defective product...</option>' +
+        products.map(p => `
+            <option value="${p.id}" data-sku="${Utils.escapeHtml(p.sku || '')}" data-name="${Utils.escapeHtml(p.name)}">
+                ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})
+                ${(p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : ''}
+            </option>
+        `).join('');
+},
+
+// Update the handleProductSelect method in App object
+handleProductSelect() {
+    const select = document.getElementById('stock-product');
+    const id = select?.value;
+    
+    if (!id) {
+        const info = document.getElementById('stock-info');
+        if (info) info.style.display = 'none';
+        AppState.selectedProductId = null;
         
-        if (!products || products.length === 0) {
-            select.innerHTML = '<option value="">No defective products found</option>';
-            return;
+        // Clear the code field when no product selected
+        const codeField = document.getElementById('stock-code');
+        if (codeField) {
+            codeField.value = '';
+            codeField.style.backgroundColor = '';
+        }
+        return;
+    }
+    
+    AppState.selectedProductId = parseInt(id);
+    
+    // Get the selected option element to fetch data attributes
+    const selectedOption = select.options[select.selectedIndex];
+    const sku = selectedOption?.getAttribute('data-sku') || '';
+    const productName = selectedOption?.getAttribute('data-name') || '';
+    
+    const product = AppState.products.find(p => p.id === AppState.selectedProductId);
+    
+    if (product) {
+        const info = document.getElementById('stock-info');
+        const current = document.getElementById('current-stock');
+        const warning = document.getElementById('stock-warning');
+        const codeField = document.getElementById('stock-code');
+        
+        if (info) info.style.display = 'block';
+        if (current) current.textContent = `Current Stock: ${product.stock_quantity || 0}`;
+        
+        // Auto-fill the code field with the product's SKU
+        if (codeField) {
+            // Use SKU if available, otherwise create a formatted code
+            if (sku) {
+                codeField.value = sku;
+            } else {
+                // Generate a code based on product ID and name
+                const namePrefix = productName.substring(0, 3).toUpperCase();
+                codeField.value = `${namePrefix}-${product.id}`;
+            }
+            
+            // Add a visual indicator that it was auto-filled
+            codeField.style.backgroundColor = '#e8f0fe';
+            setTimeout(() => {
+                if (codeField) codeField.style.backgroundColor = '';
+            }, 500);
         }
         
-        select.innerHTML = '<option value="">Select defective product...</option>' +
-            products.map(p => `
-                <option value="${p.id}">
-                    ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})
-                    ${(p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : ''}
-                </option>
-            `).join('');
-    },
+        const active = document.querySelector('.btn-type.active');
+        if (active?.dataset.type === 'OUT' && warning) {
+            warning.textContent = `⚠️ Available: ${product.stock_quantity || 0} units`;
+            warning.style.display = 'block';
+        } else if (warning) {
+            warning.textContent = '';
+            warning.style.display = 'none';
+        }
+    }
+},
+
+// Update clearStockForm method in App object
+clearStockForm() {
+    const form = document.getElementById('stock-form');
+    if (form) form.reset();
+    
+    const info = document.getElementById('stock-info');
+    if (info) info.style.display = 'none';
+    
+    const warning = document.getElementById('stock-warning');
+    if (warning) warning.textContent = '';
+    
+    // Clear the code field explicitly
+    const codeField = document.getElementById('stock-code');
+    if (codeField) {
+        codeField.value = '';
+        codeField.style.backgroundColor = '';
+    }
+    
+    AppState.selectedProductId = null;
+    
+    const select = document.getElementById('stock-product');
+    if (select) select.value = '';
+    
+    // Reset the button states (set IN as active by default)
+    const inBtn = document.querySelector('.btn-type[data-type="IN"]');
+    const outBtn = document.querySelector('.btn-type[data-type="OUT"]');
+    if (inBtn) inBtn.classList.add('active');
+    if (outBtn) outBtn.classList.remove('active');
+},
+
+// Update loadStockView method to ensure SKU is included
+async loadStockView() {                                                                             
+    try {
+        UIManager.showLoading();
+        const supabase = window.getSupabaseClient();
+        if (!supabase) throw new Error('Database unavailable');
+        
+        const { data, error } = await supabase                                                                                                        
+            .from(TABLES.PRODUCTS)
+            .select('id, name, sku, stock_quantity, condition')
+            .eq('is_active', true)
+            .ilike('condition', '%defective%')
+            .order('id', { ascending: true });
+        
+        if (error) throw error;
+        
+        AppState.products = data || [];
+        this.populateProductSelect(AppState.products);
+        await this.loadAllMovements();
+    } catch (error) {
+        console.error('Stock view load failed:', error);
+        UIManager.showError('stock-error', 'Failed to load stock view');
+    } finally {
+        UIManager.hideLoading();
+    }
+},
     
     async loadAllMovements() {
         try {
@@ -2834,20 +3433,26 @@ const App = {
         // Logout
         document.getElementById('logout-btn')?.addEventListener('click', () => AuthService.logout());
         
-        // Search
+        // Search - UPDATED: Only search on Enter key press
         const search = document.getElementById('product-search');
         if (search) {
-            search.placeholder = "Search by ID, name, SKU, or 'category:CategoryName'...";
-            const debouncedSearch = Utils.debounce(async e => {
-                await DataService.searchProducts(e.target.value);
-            }, 300);
-            search.addEventListener('input', debouncedSearch);
+            search.placeholder = "Search ID, code, name, category, building, assigned, condition... [Press Enter to search]";
+            
+            // Search on Enter key
+            search.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await DataService.searchProducts(e.target.value);
+                }
+            });
         }
         
         // Clear search
-        document.getElementById('clear-search')?.addEventListener('click', () => {
+        document.getElementById('clear-search')?.addEventListener('click', async () => {
             if (search) search.value = '';
-            DataService.loadProductsPaginated(1);
+            AppState.currentSearchTerm = null;
+            AppState.currentSearchType = null;
+            await DataService.loadProductsPaginated(1);
             Utils.showNotification('Filters cleared', 'info');
         });
         
@@ -2943,7 +3548,8 @@ const App = {
         const overlay = document.getElementById('sidebar-overlay');
         
         if (toggleBtn && sidebar && overlay) {
-            toggleBtn.addEventListener('click', () => {
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 sidebar.classList.toggle('active');
                 overlay.classList.toggle('active');
             });
@@ -2951,6 +3557,63 @@ const App = {
             overlay.addEventListener('click', () => {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
+            });
+            
+            sidebar.addEventListener('click', (e) => {
+                const clickedInteractive = e.target.closest('button') || 
+                                          e.target.closest('a') || 
+                                          e.target.closest('input') ||
+                                          e.target.closest('select') ||
+                                          e.target.closest('textarea');
+                
+                const clickedNavItem = e.target.closest('.nav-item');
+                
+                if (!clickedInteractive && !clickedNavItem) {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                }
+            });
+            
+            const sidebarHeader = sidebar.querySelector('.sidebar-header');
+            if (sidebarHeader) {
+                sidebarHeader.addEventListener('click', (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('a')) {
+                        sidebar.classList.toggle('active');
+                        overlay.classList.toggle('active');
+                    }
+                });
+            }
+            
+            const sidebarFooter = sidebar.querySelector('.sidebar-footer');
+            if (sidebarFooter) {
+                sidebarFooter.addEventListener('click', (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('a')) {
+                        sidebar.classList.toggle('active');
+                        overlay.classList.toggle('active');
+                    }
+                });
+            }
+            
+            sidebar.querySelectorAll('.nav-item').forEach(navItem => {
+                navItem.addEventListener('click', () => {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                });
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                }
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
             });
         }
     },
@@ -2960,7 +3623,6 @@ const App = {
     // ═══════════════════════════════════════════════════════════════════════
     
     setupInterfaceToggle() {
-        // Setup clickable logo/brand elements
         document.querySelectorAll('.logo-text, .sidebar-header h2, .app-title, [data-app-name]').forEach(element => {
             if (element.textContent.includes('Inventory') || element.dataset.appName === 'Inventory') {
                 element.classList.add('interface-toggle');
@@ -2981,7 +3643,6 @@ const App = {
                     element.appendChild(tooltip);
                 }
                 
-                // Replace with clickable version
                 const newElement = element.cloneNode(true);
                 element.parentNode.replaceChild(newElement, element);
                 newElement.addEventListener('click', (e) => {
@@ -2992,7 +3653,6 @@ const App = {
             }
         });
         
-        // Setup clickable logos
         document.querySelectorAll('.logo, .app-logo, .brand').forEach(element => {
             if (!element.classList.contains('interface-toggle')) {
                 element.style.cursor = 'pointer';
@@ -3012,11 +3672,9 @@ const App = {
         const sidebarFooter = document.querySelector('.sidebar-footer');
         if (!sidebarFooter) return;
         
-        // Remove existing button if any
         const existingBtn = document.getElementById('interface-toggle-btn');
         if (existingBtn) existingBtn.remove();
         
-        // Create new toggle button
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'interface-toggle-btn';
         toggleBtn.className = 'btn-inventory interface-switch-btn';
@@ -3031,7 +3689,6 @@ const App = {
             this.toggleInterface();
         });
         
-        // Insert before logout button or at the beginning
         const logoutBtn = sidebarFooter.querySelector('.btn-logout');
         if (logoutBtn) {
             sidebarFooter.insertBefore(toggleBtn, logoutBtn);
@@ -3058,7 +3715,6 @@ const App = {
         UIManager.updateInterfaceIndicator();
         this.updateInterfaceToggleButton();
         
-        // Refresh current view
         const activeView = document.querySelector('.nav-item.active')?.dataset.view;
         if (activeView) {
             this.switchView(activeView);
@@ -3171,7 +3827,6 @@ const App = {
         const select = document.getElementById('stock-product');
         if (select) select.value = '';
         
-        // Reset to IN type
         const inBtn = document.querySelector('.btn-type[data-type="IN"]');
         const outBtn = document.querySelector('.btn-type[data-type="OUT"]');
         if (inBtn) inBtn.classList.add('active');
@@ -3215,7 +3870,11 @@ const App = {
                 DataService.loadDashboard();
                 break;
             case 'products':
-                DataService.loadProductsPaginated(AppState.pagination.currentPage || 1);
+                if (AppState.currentSearchTerm) {
+                    DataService.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage || 1);
+                } else {
+                    DataService.loadProductsPaginated(AppState.pagination.currentPage || 1);
+                }
                 break;
             case 'categories':
                 DataService.loadCategories();
@@ -3355,8 +4014,8 @@ const App = {
             description: document.getElementById('product-description')?.value?.trim(),
             category_id: document.getElementById('product-category')?.value ? parseInt(document.getElementById('product-category').value) : null,
             building_id: document.getElementById('product-building')?.value ? parseInt(document.getElementById('product-building').value) : null,
-            stock_quantity: parseInt(document.getElementById('product-quantity')?.value) || 0,
-            assigned_to: document.getElementById('product-assigned-to')?.value?.trim() || null,
+            stock_quantity: parseInt(document.getElementById('product-stock')?.value) || 0,
+            assigned_to: document.getElementById('product-assigned')?.value?.trim() || null,
             condition: document.getElementById('product-condition')?.value?.trim() || PRODUCT_CONDITIONS.DEFAULT
         };
         
@@ -3538,8 +4197,8 @@ window.toggleInterface = () => App.toggleInterface();
 window.goToPage = (page) => DataService.goToPage(page);
 window.changeItemsPerPage = (value) => DataService.changeItemsPerPage(value);
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => App.init());
