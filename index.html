@@ -49,12 +49,17 @@
                             Sign In
                         </button>
                     </form>
+                    
                 </div>
             </div>
         </div>
         <!-- Dashboard View -->
         <div id="dashboard-view" class="view" role="main" aria-label="Dashboard">
             <div class="dashboard-container">
+                <!-- Mobile Menu Toggle Button -->
+                <button id="mobile-menu-toggle" class="mobile-menu-toggle" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <!-- Sidebar Overlay for mobile -->
                 <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
                 <!-- Sidebar -->
@@ -103,12 +108,9 @@
                                 <i class="fas fa-user" aria-hidden="true"></i>
                                 <span>Profile</span>
                             </button>
-                            
                         </div>
                     </nav>
                     <div class="sidebar-footer">
-
-
                         <button id="logout-btn" class="btn-logout">
                             <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                             Logout
@@ -121,23 +123,26 @@
                     <!-- Dashboard Home Section -->
                     <section id="dashboard-home" class="content-section active" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Dashboard</h1>
+                            <h1 class="page-title">Dashboard</h1>
                             <div class="datetime-display">
                                 <div id="current-date" class="date-display"></div>
                                 <div id="current-time" class="time-display"></div>
                             </div>
                         </div>
                         <div id="dashboard-error" class="error-message" role="alert"></div>
-                        <div id="stats-container" class="stats-grid" role="region" aria-label="Statistics"></div>
-                        <div class="dashboard-grid">
-                            
-                            
-                        </div>
+                        
+                        <!-- Stats Container - Will be populated by JavaScript -->
+                        <div id="stats-container"></div>
+                        
+                       
+                        
+                        
+                        
                     </section>
                     <!-- Products Section -->
                     <section id="products-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Assets Management</h1>
+                            <h1 class="page-title">Assets Management</h1>
                             <div class="header-buttons">
                                 <button id="toggle-archived" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-archive" aria-hidden="true"></i>
@@ -175,14 +180,13 @@
                                 </thead>
                                 <tbody id="products-list"></tbody>
                             </table>
-                            
                         </div>
                         <div id="pagination-container"></div>
                     </section>
                     <!-- Categories Section -->
                     <section id="categories-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Categories Management</h1>
+                            <h1 class="page-title">Categories Management</h1>
                             <button onclick="showCategoryModal()" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus" aria-hidden="true"></i>
                                 Add Category
@@ -207,7 +211,7 @@
                     <!-- Buildings Section -->
                     <section id="buildings-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Buildings Management</h1>
+                            <h1 class="page-title">Buildings Management</h1>
                             <button onclick="showBuildingModal()" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus" aria-hidden="true"></i>
                                 Add Building
@@ -232,7 +236,7 @@
                     <!-- Stock Section -->
                     <section id="stock-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Stock Management</h1>
+                            <h1 class="page-title">Stock Management</h1>
                         </div>
                         <div id="stock-error" class="error-message" role="alert"></div>
                         <div class="stock-grid">
@@ -255,40 +259,27 @@
                                                 Only products marked as "Defective" are shown here
                                             </small>
                                         </div>
-                                    
                                         <div id="stock-info" class="info-card" style="display: none;">
                                             <h4 id="current-stock">Current Stock: 0</h4>
-                                            <p id="reorder-level">Reorder Level: 0</p>
                                         </div>
-                                    
                                         <div id="stock-warning" class="warning-message" role="alert"></div>
-                                    
                                         <!-- Product Code Field - Auto-filled -->
                                         <div class="form-group">
                                             <label for="stock-code">
                                                 <i class="fas fa-barcode" aria-hidden="true"></i>
                                                 Product Code
                                             </label>
-                                            <input 
-                                                type="text" 
-                                                id="stock-code" 
-                                                name="stock-code" 
-                                                class="form-control" 
-                                                placeholder="Product code will auto-fill when product is selected"
-                                                readonly
-                                                style="background-color: #f5f5f5; cursor: not-allowed;">
+                                            <input type="text" id="stock-code" name="stock-code" class="form-control" placeholder="Product code will auto-fill when product is selected" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
                                             <small class="form-text text-muted">
                                                 <i class="fas fa-magic" aria-hidden="true"></i>
                                                 Product code is automatically filled when you select a product
                                             </small>
                                         </div>
-                                    
                                         <div class="btn-group" role="group" aria-label="Stock movement type">
                                             <div class="btn-type" data-type="OUT" role="radio" aria-checked="false" tabindex="0">
                                                 <i class="fas fa-arrow-up" aria-hidden="true"></i> OUT
                                             </div>
                                         </div>
-                                    
                                         <div class="form-group">
                                             <label for="stock-quantity">
                                                 <i class="fas fa-calculator" aria-hidden="true"></i>
@@ -296,7 +287,6 @@
                                             </label>
                                             <input type="number" id="stock-quantity" class="form-control" min="1" required>
                                         </div>
-                                    
                                         <div class="form-group">
                                             <label for="stock-reference">
                                                 <i class="fas fa-tag" aria-hidden="true"></i>
@@ -308,7 +298,6 @@
                                                 Enter a unique reference number for this transaction
                                             </small>
                                         </div>
-                                    
                                         <div class="form-group">
                                             <label for="stock-notes">
                                                 <i class="fas fa-sticky-note" aria-hidden="true"></i>
@@ -316,7 +305,6 @@
                                             </label>
                                             <textarea id="stock-notes" class="form-control" rows="3" placeholder="Please enter any additional notes"></textarea>
                                         </div>
-                                    
                                         <button type="submit" class="btn btn-primary btn-block">
                                             <i class="fas fa-check" aria-hidden="true"></i>
                                             Apply Adjustment
@@ -328,7 +316,6 @@
                                     </form>
                                 </div>
                             </div>
-                        
                             <div class="card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-history" aria-hidden="true"></i> Stock Movement History</h3>
@@ -363,7 +350,7 @@
                     <!-- Reports Section -->
                     <section id="reports-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">Reports & Analytics</h1>
+                            <h1 class="page-title">Reports & Analytics</h1>
                         </div>
                         <div class="reports-grid">
                             <div class="report-card" onclick="showReport('stock-summary')" role="button" tabindex="0" aria-label="Generate stock summary report">
@@ -371,7 +358,6 @@
                                 <h3>Stock Summary</h3>
                                 <p>Current stock levels for all products</p>
                             </div>
-                            
                             <div class="report-card" onclick="showReport('category-analysis')" role="button" tabindex="0" aria-label="Generate category analysis report">
                                 <i class="fas fa-tags" aria-hidden="true"></i>
                                 <h3>Category Analysis</h3>
@@ -396,7 +382,7 @@
                     <!-- Profile Section -->
                     <section id="profile-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
-                            <h1 id="page-title" class="page-title">User Profile</h1>
+                            <h1 class="page-title">User Profile</h1>
                         </div>
                         <div class="profile-container">
                             <div class="profile-header">
@@ -443,7 +429,6 @@
                     <button class="close-btn" onclick="closeModal('product-modal')" aria-label="Close modal">&times;</button>
                 </div>
                 <form id="product-form" novalidate>
-
                     <div class="modal-body">
                         <input type="hidden" id="product-id">
                         <div class="form-row">
@@ -457,7 +442,7 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="product-description">Description <span aria-label="required">*</span></label>
+                            <label for="product-description">Description</label>
                             <textarea id="product-description" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="form-row">
@@ -474,19 +459,17 @@
                                 </select>
                             </div>
                         </div>
-
-                        <!-- New Assigned Field -->
                         <div class="form-group">
-                            <label for="product-assigned">Assigned To <span aria-label="required">*</span></label>
-                            <input type="text" id="product-assigned" class="form-control" placeholder="">
+                            <label for="product-assigned">Assigned To</label>
+                            <input type="text" id="product-assigned" class="form-control" placeholder="Enter person/department name">
                         </div>
-
                         <div class="form-group">
                             <label for="product-condition">Condition <span aria-label="required">*</span></label>
                             <select id="product-condition" class="form-control" required>
                                 <option value="working-in storage">Working - in storage</option>
                                 <option value="working-assigned">Working - assigned</option>
                                 <option value="defective">Defective</option>
+                                <option value="damaged">Damaged</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -571,46 +554,7 @@
                 </form>
             </div>
         </div>
-        <!-- Register Modal -->
-        <div id="register-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="register-modal-title">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="register-modal-title">Register New Account</h2>
-                    <button class="close-btn" onclick="closeModal('register-modal')" aria-label="Close modal">&times;</button>
-                </div>
-                <form id="register-form" novalidate>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="reg-fullname">Full Name <span aria-label="required">*</span></label>
-                            <input type="text" id="reg-fullname" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="reg-email">Email <span aria-label="required">*</span></label>
-                            <input type="email" id="reg-email" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="reg-password">Password <span aria-label="required">*</span></label>
-                            <input type="password" id="reg-password" class="form-control" required minlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label for="reg-confirm-password">Confirm Password <span aria-label="required">*</span></label>
-                            <input type="password" id="reg-confirm-password" class="form-control" required minlength="6">
-                        </div>
-                        <div id="register-error" class="error-message" role="alert"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('register-modal')">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                            Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-user-plus" aria-hidden="true"></i>
-                            Register
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        
         <!-- Loading Overlay -->
         <div id="loading-overlay" aria-live="polite" aria-busy="true">
             <div class="loading-spinner">
