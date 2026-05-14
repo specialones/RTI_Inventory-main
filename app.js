@@ -100,660 +100,6 @@ window.getSupabaseClient = () => SupabaseManager.getCurrentClient();
 window.getInterfaceClient = (interfaceName) => SupabaseManager.getClient(interfaceName);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DYNAMIC STYLES INJECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function injectStyles() {
-    // Pagination Styles
-    if (!document.querySelector('#pagination-styles')) {
-        const paginationStyle = document.createElement('style');
-        paginationStyle.id = 'pagination-styles';
-        paginationStyle.textContent = `
-            .pagination-wrapper {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 16px 20px;
-                margin-top: 16px;
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
-
-            .pagination-info {
-                color: var(--text-secondary);
-                font-size: 13px;
-                font-weight: 500;
-                white-space: nowrap;
-            }
-
-            .pagination-controls {
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .pagination-btn {
-                min-width: 36px;
-                height: 36px;
-                padding: 0 10px;
-                border: 1px solid var(--border);
-                background: var(--surface-light);
-                color: var(--text-secondary);
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 13px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-family: inherit;
-            }
-
-            .pagination-btn:hover:not(:disabled) {
-                background: var(--surface-hover);
-                color: var(--text);
-                border-color: var(--primary);
-                transform: translateY(-1px);
-            }
-
-            .pagination-btn.active {
-                background: var(--primary);
-                color: white;
-                border-color: var(--primary);
-                font-weight: 600;
-                box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
-            }
-
-            .pagination-btn:disabled {
-                opacity: 0.35;
-                cursor: not-allowed;
-                transform: none;
-            }
-
-            .pagination-ellipsis {
-                padding: 0 4px;
-                color: var(--text-muted);
-                font-size: 14px;
-                user-select: none;
-            }
-
-            .pagination-per-page {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                white-space: nowrap;
-            }
-
-            .pagination-per-page label {
-                color: var(--text-secondary);
-                font-size: 12px;
-                font-weight: 500;
-            }
-
-            .pagination-per-page select {
-                background: var(--surface-light);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 7px 30px 7px 12px;
-                color: var(--text);
-                font-size: 13px;
-                cursor: pointer;
-                appearance: none;
-                -webkit-appearance: none;
-                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b92b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-                background-repeat: no-repeat;
-                background-position: right 10px center;
-            }
-
-            .pagination-per-page select:hover {
-                border-color: var(--primary);
-            }
-
-            .pagination-per-page select:focus {
-                outline: none;
-                border-color: var(--primary);
-                box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-            }
-
-            .interface-2 .pagination-btn.active {
-                background: #6366f1;
-                border-color: #6366f1;
-                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-            }
-
-            .interface-2 .pagination-btn:hover:not(:disabled) {
-                border-color: #818cf8;
-            }
-
-            .interface-2 .pagination-per-page select:focus {
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-            }
-
-            @media (max-width: 768px) {
-                .pagination-wrapper {
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 10px;
-                }
-                
-                .pagination-info {
-                    text-align: center;
-                    font-size: 12px;
-                }
-                
-                .pagination-btn {
-                    min-width: 32px;
-                    height: 32px;
-                    font-size: 12px;
-                    padding: 0 8px;
-                }
-                
-                .pagination-per-page {
-                    justify-content: center;
-                }
-            }
-        `;
-        document.head.appendChild(paginationStyle);
-    }
-
-    // Notification Styles
-    if (!document.querySelector('#notification-styles')) {
-        const style = document.createElement('style');
-        style.id = 'notification-styles';
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-            .highlight-row {
-                animation: highlight 1s ease-in-out;
-                background-color: #fff3cd !important;
-            }
-            @keyframes highlight {
-                0% { background-color: #ffeb3b; }
-                100% { background-color: #fff3cd; }
-            }
-            .product-archived {
-                opacity: 0.7;
-                text-decoration: line-through;
-            }
-            .archived-badge {
-                background: #6c757d;
-                color: white;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 11px;
-                margin-left: 8px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // Interface Toggle Styles
-    if (!document.querySelector('#interface-toggle-styles')) {
-        const interfaceStyle = document.createElement('style');
-        interfaceStyle.id = 'interface-toggle-styles';
-        interfaceStyle.textContent = `
-            .interface-toggle {
-                cursor: pointer;
-                transition: all 0.3s ease;
-                position: relative;
-                user-select: none;
-            }
-            .interface-toggle:hover {
-                opacity: 0.8;
-                transform: scale(1.02);
-            }
-            .interface-toggle:active {
-                transform: scale(0.98);
-            }
-            .interface-badge {
-                font-size: 10px;
-                background: rgba(255,255,255,0.2);
-                padding: 2px 8px;
-                border-radius: 10px;
-                margin-left: 8px;
-                vertical-align: middle;
-                font-weight: normal;
-            }
-            .interface-tooltip {
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.9);
-                color: white;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                white-space: nowrap;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.3s;
-                margin-bottom: 5px;
-            }
-            .interface-tooltip::after {
-                content: '';
-                position: absolute;
-                top: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                border: 5px solid transparent;
-                border-top-color: rgba(0,0,0,0.9);
-            }
-            .interface-toggle:hover .interface-tooltip {
-                opacity: 1;
-            }
-            .database-indicator {
-                font-size: 11px;
-                padding: 4px 8px;
-                border-radius: 4px;
-                margin-top: 5px;
-                display: inline-block;
-            }
-            .database-indicator.interface1 {
-                background: rgba(67, 97, 238, 0.2);
-                color: #daf0ea;
-                border: 1px solid rgba(67, 97, 238, 0.3);
-            }
-            .database-indicator.interface2 {
-                background: rgba(99,102,241,0.5);
-                color: #daf0ea;
-                border: 2px solid rgba(99,102,241,0.5);
-            }
-            .interface-switch-btn {
-                background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%) !important;
-                border: 1px solid rgba(99,102,241,0.3) !important;
-                margin-bottom: var(--space-3) !important;
-                animation: subtlePulse 2s infinite ease-in-out;
-            }
-            .interface-2 .interface-switch-btn {
-                background: linear-gradient(135deg, #4361ee 100%) !important;
-                border: 1px solid rgba(99, 102, 241, 0.3) !important;
-            }
-            .interface-switch-btn:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 6px 20px rgba(99,102,241,0.3) !important;
-            }
-            .interface-2 .interface-switch-btn:hover {
-                box-shadow: 0 6px 20px rgba(99,104,241,0.3) !important;
-            }
-            @keyframes subtlePulse {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
-                50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
-            }
-            .interface-2 .interface-switch-btn {
-                animation-name: subtlePulseBlue;
-            }
-            @keyframes subtlePulseBlue {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
-                50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
-            }
-            .interface-2 .stat-card {
-                border-radius: 8px;
-                padding: 25px 20px;
-                background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-            }
-            .interface-2 .dashboard-grid,
-            .interface-2 .dashboard-grid-secondary {
-                gap: 15px;
-            }
-            .interface-2 .building-card {
-                border-radius: 8px;
-                border: 2px solid rgba(99,102,241,0.3);
-            }
-            .interface-2 .building-card::before {
-                background: linear-gradient(90deg,#667eea 0%,#764ba2 100%);
-            }
-            .interface-2 .mini-card-icon {
-                border-radius: 8px;
-            }
-            .interface-2 .stat-card-mini::before {
-                background: linear-gradient(90deg,#667eea 0%,transparent 100%);
-            }
-            .interface-2 .table {
-                border-radius: 8px;
-                overflow: hidden;
-            }
-            .interface-2 .action-btn {
-                border-radius: 6px;
-            }
-            .interface-2 .modal-content {
-                border-radius: 12px;
-            }
-            .interface-2 .sidebar {
-                border-right: 2px solid rgba(99,102,241,0.2);
-            }
-        `;
-        document.head.appendChild(interfaceStyle);
-    }
-
-    // Dashboard Grid Styles
-    if (!document.querySelector('#dashboard-grid-styles')) {
-        const gridStyle = document.createElement('style');
-        gridStyle.id = 'dashboard-grid-styles';
-        gridStyle.textContent = `
-            .dashboard-grid-secondary {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                grid-template-rows: repeat(4, 1fr);
-                gap: 20px;
-                margin-bottom: 40px;
-                margin-top: 20px;
-            }
-            
-            .dashboard-buildings {
-                margin-top: 10px;
-            }
-            
-            .dashboard-buildings-title {
-                font-size: 20px;
-                font-weight: 600;
-                color: #e0e0e0;
-                margin-bottom: 25px;
-                padding-bottom: 12px;
-                border-bottom: 2px solid rgba(255,255,255,0.1);
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .dashboard-buildings-title i {
-                color: #06d6a0;
-                font-size: 22px;
-            }
-            
-            .building-cards-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                grid-template-rows: repeat(2, 1fr);
-                gap: 20px;
-            }
-            
-            @media(max-width: 1400px) {
-                .dashboard-grid-secondary {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-                .building-cards-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-            }
-            
-            @media(max-width: 768px) {
-                .dashboard-grid-secondary {
-                    grid-template-columns: 1fr;
-                }
-                .building-cards-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-            
-            .stat-card-mini {
-                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
-                border-radius: 16px;
-                padding: 25px;
-                border: 1px solid rgba(255,255,255,0.05);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .stat-card-mini::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, var(--accent-color, #4361ee) 0%, transparent 100%);
-                opacity: 0.5;
-            }
-            
-            .stat-card-mini:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(70, 90, 202, 0.3);
-            }
-            
-            .mini-card-header {
-                margin-bottom: 20px;
-            }
-            
-            .mini-card-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #fff;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 6px;
-            }
-            
-            .mini-card-icon {
-                width: 42px;
-                height: 42px;
-                border-radius: 12px;
-                background: var(--icon-bg, linear-gradient(135deg, #4361ee 0%, #7209b7 100%));
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                color: white;
-                flex-shrink: 0;
-            }
-            
-            .mini-card-stats {
-                margin-top: auto;
-                text-align: center;
-                padding: 15px 10px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                border: 1px solid rgba(255,255,255,0.05);
-            }
-            
-            .mini-card-value {
-                font-size: 42px;
-                font-weight: 700;
-                margin-bottom: 4px;
-                font-family: 'Courier New', monospace;
-            }
-            
-            .mini-card-desc {
-                font-size: 12px;
-                color: #9e9e9e;
-            }
-            
-            .building-card {
-                background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
-                border-radius: 16px;
-                padding: 25px;
-                border: 1px solid rgba(255,255,255,0.05);
-                transition: all 0.3s ease;
-                position: relative;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .building-card::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, #4361ee 0%, #7209b7 100%);
-            }
-            
-            .building-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(70, 90, 202, 0.3);
-            }
-            
-            .building-card-header {
-                margin-bottom: 20px;
-            }
-            
-            .building-card-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #fff;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 6px;
-            }
-            
-            .building-card-location {
-                font-size: 13px;
-                color: #9e9e9e;
-                margin-top: 4px;
-                padding-left: 3px;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-            
-            .building-card-stats {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 12px;
-                margin-top: auto;
-            }
-            
-            .building-stat-item {
-                text-align: center;
-                padding: 15px 10px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 12px;
-                border: 1px solid rgba(255,255,255,0.05);
-            }
-            
-            .building-stat-value {
-                font-size: 36px;
-                font-weight: 700;
-                color: #06d6a0;
-                font-family: 'Courier New', monospace;
-                margin-bottom: 4px;
-            }
-            
-            .building-stat-label {
-                font-size: 11px;
-                color: #9e9e9e;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                font-weight: 500;
-            }
-            
-            .interface-2 .stat-card-mini {
-                border-radius: 12px;
-                border: 1px solid rgba(99,102,241,0.15);
-                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
-            }
-            
-            .interface-2 .stat-card-mini::before {
-                background: linear-gradient(90deg, #818cf8 0%, transparent 100%);
-            }
-            
-            .interface-2 .mini-card-icon {
-                border-radius: 10px;
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            }
-            
-            .interface-2 .building-card {
-                border-radius: 12px;
-                border: 1px solid rgba(99,102,241,0.15);
-                background: linear-gradient(135deg, #1e2440 0%, #161b33 100%);
-            }
-            
-            .interface-2 .building-card::before {
-                background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-            }
-            
-            .interface-2 .building-stat-value {
-                color: #818cf8;
-            }
-        `;
-        document.head.appendChild(gridStyle);
-    }
-
-    // Sidebar Clickable Styles
-    if (!document.querySelector('#sidebar-clickable-styles')) {
-        const sidebarStyle = document.createElement('style');
-        sidebarStyle.id = 'sidebar-clickable-styles';
-        sidebarStyle.textContent = `
-            .sidebar {
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-            
-            .sidebar .nav-item,
-            .sidebar button,
-            .sidebar a,
-            .sidebar input,
-            .sidebar select,
-            .sidebar textarea {
-                cursor: pointer;
-            }
-            
-            .sidebar-header {
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-            }
-            
-            .sidebar-header:hover {
-                background-color: rgba(255, 255, 255, 0);
-            }
-            
-            .sidebar-footer {
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-            }
-            
-            .sidebar-footer:hover {
-                background-color: rgba(255, 255, 255, 0);
-            }
-            
-            .sidebar-toggle-hint {
-                position: absolute;
-                right: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                color: var(--text-secondary);
-                font-size: 12px;
-            }
-            
-            .sidebar:hover .sidebar-toggle-hint {
-                opacity: 1;
-            }
-            
-            @media (max-width: 768px) {
-                .sidebar-toggle-hint {
-                    display: none;
-                }
-            }
-        `;
-        document.head.appendChild(sidebarStyle);
-    }
-}
-
-// Inject all styles
-injectStyles();
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // APPLICATION STATE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1587,119 +933,117 @@ const DataService = {
     },
     
     async renderDashboardStats(stats) {
-        const container = document.getElementById('stats-container');
-        if (!container) return;
-        
-        // Building cards HTML
-        const buildingCardsHTML = stats.building_stats.map(building => `
-            <div class="building-card">
-                <div class="building-card-header">
-                    <div class="building-card-name">${Utils.escapeHtml(building.name)}</div>
-                    <div class="building-card-location">
-                    </div>
-                </div>
-                <div class="building-card-stats">
-                    <div class="building-stat-item">
-                        <div class="building-stat-value">${building.total_units.toLocaleString()}</div>
-                        <div class="building-stat-label">TOTAL ASSETS</div>
-                    </div>
+    const container = document.getElementById('stats-container');
+    if (!container) return;
+    
+    // Render 4 stat cards in a row - matching the image layout (NEW VERSION)
+    container.innerHTML = `
+        <div class="dashboard-stats-row">
+            <div class="stat-card-dashboard working">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-value">${stats.working_products}</div>
+                <div class="stat-title">Working Products</div>
+                <div class="stat-desc">In good condition</div>
+            </div>
+            <div class="stat-card-dashboard defective">
+                <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                <div class="stat-value">${stats.defective_products}</div>
+                <div class="stat-title">Defective</div>
+                <div class="stat-desc">Needs repair/replacement</div>
+            </div>
+            <div class="stat-card-dashboard damaged">
+                <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-value">${stats.damaged_products}</div>
+                <div class="stat-title">Damaged</div>
+                <div class="stat-desc">Cannot be used</div>
+            </div>
+            <div class="stat-card-dashboard assigned">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-value">${stats.assigned_products}</div>
+                <div class="stat-title">Assigned</div>
+                <div class="stat-desc">Assigned in units</div>
+            </div>
+        </div>
+    `;
+    
+    // Render Building Analysis Section
+    const buildingsHTML = stats.building_stats && stats.building_stats.length > 0
+        ? stats.building_stats.map(building => `
+            <div class="building-analysis-card">
+                <div class="card-name">${Utils.escapeHtml(building.name)}</div>
+                <div class="card-stats">
+                    <div class="stat-value">${building.total_units.toLocaleString()}</div>
+                    <div class="stat-label">TOTAL ASSETS</div>
                 </div>
             </div>
-        `).join('');
-        
-        // Category cards HTML
-        const categoryCardsHTML = stats.category_stats && stats.category_stats.length > 0 
-            ? stats.category_stats.map(category => `
-                <div class="building-card">
-                    <div class="building-card-header">
-                        <div class="building-card-name">${Utils.escapeHtml(category.name)}</div>
-                    </div>
-                    <div class="building-card-stats">
-                        <div class="building-stat-item">
-                            <div class="building-stat-value">${category.total_units.toLocaleString()}</div>
-                            <div class="building-stat-label">TOTAL ASSETS</div>
-                        </div>
-                    </div>
-                </div>
-            `).join('')
-            : '';
-        
-        container.innerHTML = `
-            <div class="dashboard-grid-secondary">
-                <div class="stat-card-mini" style="--accent-color:#06d6a0;--icon-bg:linear-gradient(135deg,#06d6a0 0%,#1b5e20 100%)">
-                    <div class="mini-card-header">
-                        <div class="mini-card-name">
-                            <div class="mini-card-icon"><i class="fas fa-check-circle"></i></div>
-                            Working Products
-                        </div>
-                    </div>
-                    <div class="mini-card-stats">
-                        <div class="mini-card-value" style="color:#06d6a0">${stats.working_products}</div>
-                        <div class="mini-card-desc">In good condition</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-mini" style="--accent-color:#ff8c00;--icon-bg:linear-gradient(135deg,#ff8c00 0%,#e65100 100%)">
-                    <div class="mini-card-header">
-                        <div class="mini-card-name">
-                            <div class="mini-card-icon"><i class="fas fa-tools"></i></div>
-                            Defective
-                        </div>
-                    </div>
-                    <div class="mini-card-stats">
-                        <div class="mini-card-value" style="color:#ff8c00">${stats.defective_products}</div>
-                        <div class="mini-card-desc">Needs repair/replacement</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-mini" style="--accent-color:#e63946;--icon-bg:linear-gradient(135deg,#e63946 0%,#c62828 100%)">
-                    <div class="mini-card-header">
-                        <div class="mini-card-name">
-                            <div class="mini-card-icon"><i class="fas fa-times-circle"></i></div>
-                            Damaged
-                        </div>
-                    </div>
-                    <div class="mini-card-stats">
-                        <div class="mini-card-value" style="color:#e63946">${stats.damaged_products}</div>
-                        <div class="mini-card-desc">Cannot be used</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card-mini" style="--accent-color:#4361ee;--icon-bg:linear-gradient(135deg,#4361ee 0%,#3a0ca3 100%)">
-                    <div class="mini-card-header">
-                        <div class="mini-card-name">
-                            <div class="mini-card-icon"><i class="fas fa-user-check"></i></div>
-                            Assigned
-                        </div>
-                    </div>
-                    <div class="mini-card-stats">
-                        <div class="mini-card-value" style="color:#4361ee">${stats.assigned_products}</div>
-                        <div class="mini-card-desc">Assigned in units</div>
-                    </div>
+        `).join('')
+        : '<div class="building-analysis-card" style="grid-column:1/-1;text-align:center;padding:40px">No buildings with assets found</div>';
+    
+    // Render Category Analysis Section
+    const categoriesHTML = stats.category_stats && stats.category_stats.length > 0
+        ? stats.category_stats.map(category => `
+            <div class="category-analysis-card">
+                <div class="card-name">${Utils.escapeHtml(category.name)}</div>
+                <div class="card-stats">
+                    <div class="stat-value">${category.total_units.toLocaleString()}</div>
+                    <div class="stat-label">TOTAL ASSETS</div>
                 </div>
             </div>
-            
-            <div class="dashboard-buildings">
-                <h3 class="dashboard-buildings-title">
-                    <i class="fas fa-building"></i> Building Analysis
-                </h3>
-                <div class="building-cards-grid">
-                    ${buildingCardsHTML}
-                </div>
-            </div>
-            
-            ${categoryCardsHTML ? `
-            <div class="dashboard-buildings">
-                <h3 class="dashboard-buildings-title">
-                    <i class="fas fa-tags"></i> Category Analysis
-                </h3>
-                <div class="building-cards-grid">
-                    ${categoryCardsHTML}
-                </div>
-            </div>
-            ` : ''}
+        `).join('')
+        : '';
+    
+    // Check if we need to append the building and category sections
+    // Check if sections already exist, if not create them
+    let buildingsSection = document.getElementById('buildings-section');
+    let categoriesSection = document.getElementById('categories-section');
+    
+    if (!buildingsSection) {
+        // Create buildings section
+        buildingsSection = document.createElement('div');
+        buildingsSection.id = 'buildings-section';
+        buildingsSection.className = 'dashboard-section';
+        buildingsSection.innerHTML = `
+            <h3 class="section-title">
+                <i class="fas fa-building"></i> Building Analysis
+            </h3>
+            <div id="buildings-container" class="building-cards-grid"></div>
         `;
-    },
+        container.parentNode.appendChild(buildingsSection);
+    }
+    
+    if (!categoriesSection && stats.category_stats && stats.category_stats.length > 0) {
+        // Create categories section
+        categoriesSection = document.createElement('div');
+        categoriesSection.id = 'categories-section';
+        categoriesSection.className = 'dashboard-section';
+        categoriesSection.innerHTML = `
+            <h3 class="section-title">
+                <i class="fas fa-tags"></i> Category Analysis
+            </h3>
+            <div id="categories-container" class="category-cards-grid"></div>
+        `;
+        container.parentNode.appendChild(categoriesSection);
+    }
+    
+    // Update buildings container
+    const buildingsContainer = document.getElementById('buildings-container');
+    if (buildingsContainer) {
+        buildingsContainer.innerHTML = buildingsHTML;
+    }
+    
+    // Update categories container
+    const categoriesContainer = document.getElementById('categories-container');
+    if (categoriesContainer) {
+        if (stats.category_stats && stats.category_stats.length > 0) {
+            categoriesContainer.innerHTML = categoriesHTML;
+            document.getElementById('categories-section').style.display = 'block';
+        } else {
+            if (document.getElementById('categories-section')) {
+                document.getElementById('categories-section').style.display = 'none';
+            }
+        }
+    }
+},
     
     // ═══════════════════════════════════════════════════════════════════════
     // PAGINATION METHODS
@@ -2046,7 +1390,7 @@ const DataService = {
                 AppState.currentSearchTerm = search;
                 AppState.currentSearchType = 'general';
                 
-                // Perform paginated search
+                // Perform paginated search - NO LOADING EFFECT
                 await this.searchProductsPaginated(search, 1);
             }
         } catch (error) {
@@ -2056,10 +1400,10 @@ const DataService = {
         }
     },
     
-    // Paginated search across all fields
+    // Paginated search across all fields - NO LOADING EFFECT
     async searchProductsPaginated(searchTerm, page = 1) {
         try {
-            UIManager.showLoading();
+            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -2183,14 +1527,14 @@ const DataService = {
             console.error('Paginated search failed:', error);
             throw error;
         } finally {
-            UIManager.hideLoading();
+            // REMOVED: UIManager.hideLoading();
         }
     },
     
-    // Filter products by field
+    // Filter products by field - NO LOADING EFFECT
     async filterProductsByField(field, value) {
         try {
-            UIManager.showLoading();
+            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -2249,13 +1593,13 @@ const DataService = {
             this.renderProductsTable([]);
             this.renderPagination();
         } finally {
-            UIManager.hideLoading();
+            // REMOVED: UIManager.hideLoading();
         }
     },
     
     async filterProductsByCategory(categoryName) {
         try {
-            UIManager.showLoading();
+            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -2291,7 +1635,7 @@ const DataService = {
             this.renderProductsTable([]);
             this.renderPagination();
         } finally {
-            UIManager.hideLoading();
+            // REMOVED: UIManager.hideLoading();
         }
     },
     
@@ -2797,175 +2141,49 @@ const DataService = {
     // STOCK MANAGEMENT METHODS
     // ═══════════════════════════════════════════════════════════════════════
     
-    // Add this method to the DataService object (around line 1500-1600 area)
-
-async loadStockView() {
-    try {
-        UIManager.showLoading();
-        const supabase = window.getSupabaseClient();
-        if (!supabase) throw new Error('Database unavailable');
-        
-        const { data, error } = await supabase
-            .from(TABLES.PRODUCTS)
-            .select('id, name, sku, stock_quantity, condition')
-            .eq('is_active', true)
-            .ilike('condition', '%defective%')
-            .order('id', { ascending: true });
-        
-        if (error) throw error;
-        
-        AppState.products = data || [];
-        this.populateProductSelect(AppState.products);
-        await this.loadAllMovements();
-    } catch (error) {
-        console.error('Stock view load failed:', error);
-        UIManager.showError('stock-error', 'Failed to load stock view');
-    } finally {
-        UIManager.hideLoading();
-    }
-},
-
-// Update the populateProductSelect method in DataService
-populateProductSelect(products) {
-    const select = document.getElementById('stock-product');
-    if (!select) return;
-    
-    if (!products || products.length === 0) {
-        select.innerHTML = '<option value="">No defective products found</option>';
-        return;
-    }
-    
-    select.innerHTML = '<option value="">Select defective product...</option>' +
-        products.map(p => `
-            <option value="${p.id}" data-sku="${Utils.escapeHtml(p.sku || '')}" data-name="${Utils.escapeHtml(p.name)}">
-                ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})
-                ${(p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : ''}
-            </option>
-        `).join('');
-},
-
-// Update the handleProductSelect method in App object
-handleProductSelect() {
-    const select = document.getElementById('stock-product');
-    const id = select?.value;
-    
-    if (!id) {
-        const info = document.getElementById('stock-info');
-        if (info) info.style.display = 'none';
-        AppState.selectedProductId = null;
-        
-        // Clear the code field when no product selected
-        const codeField = document.getElementById('stock-code');
-        if (codeField) {
-            codeField.value = '';
-            codeField.style.backgroundColor = '';
-        }
-        return;
-    }
-    
-    AppState.selectedProductId = parseInt(id);
-    
-    // Get the selected option element to fetch data attributes
-    const selectedOption = select.options[select.selectedIndex];
-    const sku = selectedOption?.getAttribute('data-sku') || '';
-    const productName = selectedOption?.getAttribute('data-name') || '';
-    
-    const product = AppState.products.find(p => p.id === AppState.selectedProductId);
-    
-    if (product) {
-        const info = document.getElementById('stock-info');
-        const current = document.getElementById('current-stock');
-        const warning = document.getElementById('stock-warning');
-        const codeField = document.getElementById('stock-code');
-        
-        if (info) info.style.display = 'block';
-        if (current) current.textContent = `Current Stock: ${product.stock_quantity || 0}`;
-        
-        // Auto-fill the code field with the product's SKU
-        if (codeField) {
-            // Use SKU if available, otherwise create a formatted code
-            if (sku) {
-                codeField.value = sku;
-            } else {
-                // Generate a code based on product ID and name
-                const namePrefix = productName.substring(0, 3).toUpperCase();
-                codeField.value = `${namePrefix}-${product.id}`;
-            }
+    async loadStockView() {
+        try {
+            UIManager.showLoading();
+            const supabase = window.getSupabaseClient();
+            if (!supabase) throw new Error('Database unavailable');
             
-            // Add a visual indicator that it was auto-filled
-            codeField.style.backgroundColor = '#e8f0fe';
-            setTimeout(() => {
-                if (codeField) codeField.style.backgroundColor = '';
-            }, 500);
+            const { data, error } = await supabase
+                .from(TABLES.PRODUCTS)
+                .select('id, name, sku, stock_quantity, condition')
+                .eq('is_active', true)
+                .ilike('condition', '%defective%')
+                .order('id', { ascending: true });
+            
+            if (error) throw error;
+            
+            AppState.products = data || [];
+            this.populateProductSelect(AppState.products);
+            await this.loadAllMovements();
+        } catch (error) {
+            console.error('Stock view load failed:', error);
+            UIManager.showError('stock-error', 'Failed to load stock view');
+        } finally {
+            UIManager.hideLoading();
+        }
+    },
+    
+    populateProductSelect(products) {
+        const select = document.getElementById('stock-product');
+        if (!select) return;
+        
+        if (!products || products.length === 0) {
+            select.innerHTML = '<option value="">No defective products found</option>';
+            return;
         }
         
-        const active = document.querySelector('.btn-type.active');
-        if (active?.dataset.type === 'OUT' && warning) {
-            warning.textContent = `⚠️ Available: ${product.stock_quantity || 0} units`;
-            warning.style.display = 'block';
-        } else if (warning) {
-            warning.textContent = '';
-            warning.style.display = 'none';
-        }
-    }
-},
-
-// Update clearStockForm method in App object
-clearStockForm() {
-    const form = document.getElementById('stock-form');
-    if (form) form.reset();
-    
-    const info = document.getElementById('stock-info');
-    if (info) info.style.display = 'none';
-    
-    const warning = document.getElementById('stock-warning');
-    if (warning) warning.textContent = '';
-    
-    // Clear the code field explicitly
-    const codeField = document.getElementById('stock-code');
-    if (codeField) {
-        codeField.value = '';
-        codeField.style.backgroundColor = '';
-    }
-    
-    AppState.selectedProductId = null;
-    
-    const select = document.getElementById('stock-product');
-    if (select) select.value = '';
-    
-    // Reset the button states (set IN as active by default)
-    const inBtn = document.querySelector('.btn-type[data-type="IN"]');
-    const outBtn = document.querySelector('.btn-type[data-type="OUT"]');
-    if (inBtn) inBtn.classList.add('active');
-    if (outBtn) outBtn.classList.remove('active');
-},
-
-// Update loadStockView method to ensure SKU is included
-async loadStockView() {                                                                             
-    try {
-        UIManager.showLoading();
-        const supabase = window.getSupabaseClient();
-        if (!supabase) throw new Error('Database unavailable');
-        
-        const { data, error } = await supabase                                                                                                        
-            .from(TABLES.PRODUCTS)
-            .select('id, name, sku, stock_quantity, condition')
-            .eq('is_active', true)
-            .ilike('condition', '%defective%')
-            .order('id', { ascending: true });
-        
-        if (error) throw error;
-        
-        AppState.products = data || [];
-        this.populateProductSelect(AppState.products);
-        await this.loadAllMovements();
-    } catch (error) {
-        console.error('Stock view load failed:', error);
-        UIManager.showError('stock-error', 'Failed to load stock view');
-    } finally {
-        UIManager.hideLoading();
-    }
-},
+        select.innerHTML = '<option value="">Select defective product...</option>' +
+            products.map(p => `
+                <option value="${p.id}" data-sku="${Utils.escapeHtml(p.sku || '')}" data-name="${Utils.escapeHtml(p.name)}">
+                    ID ${p.id}: ${Utils.escapeHtml(p.name)} (Stock: ${p.stock_quantity || 0})
+                    ${(p.stock_quantity || 0) === 0 ? ' ⚠️ Out of Stock' : ''}
+                </option>
+            `).join('');
+    },
     
     async loadAllMovements() {
         try {
