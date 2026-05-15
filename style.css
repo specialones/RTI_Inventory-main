@@ -1084,8 +1084,8 @@ FORMS - RESPONSIVE
 }
 
 .form-control {
-    width: 75%;
-    height: 30px;
+    width: 100%;
+    height: 50px;
     padding: 0 var(--space-4);
     background: var(--surface);
     border: 2px solid var(--border);
