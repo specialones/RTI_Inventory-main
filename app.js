@@ -1,5 +1,5 @@
 /**
- * Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete)
+ * Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete & Excel Import)
  * Features:
  * - bcrypt password hashing
  * - Enhanced ID search with highlighting
@@ -16,6 +16,7 @@
  * - Clickable sidebar toggle on all devices
  * - Full search across all fields with pagination support
  * - Search on Enter key press only
+ * - Excel Import functionality with template download
  */
 'use strict';
 
@@ -933,117 +934,117 @@ const DataService = {
     },
     
     async renderDashboardStats(stats) {
-    const container = document.getElementById('stats-container');
-    if (!container) return;
-    
-    // Render 4 stat cards in a row - matching the image layout (NEW VERSION)
-    container.innerHTML = `
-        <div class="dashboard-stats-row">
-            <div class="stat-card-dashboard working">
-                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-                <div class="stat-value">${stats.working_products}</div>
-                <div class="stat-title">Working Products</div>
-                <div class="stat-desc">In good condition</div>
-            </div>
-            <div class="stat-card-dashboard defective">
-                <div class="stat-icon"><i class="fas fa-tools"></i></div>
-                <div class="stat-value">${stats.defective_products}</div>
-                <div class="stat-title">Defective</div>
-                <div class="stat-desc">Needs repair/replacement</div>
-            </div>
-            <div class="stat-card-dashboard damaged">
-                <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
-                <div class="stat-value">${stats.damaged_products}</div>
-                <div class="stat-title">Damaged</div>
-                <div class="stat-desc">Cannot be used</div>
-            </div>
-            <div class="stat-card-dashboard assigned">
-                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
-                <div class="stat-value">${stats.assigned_products}</div>
-                <div class="stat-title">Assigned</div>
-                <div class="stat-desc">Assigned in units</div>
-            </div>
-        </div>
-    `;
-    
-    // Render Building Analysis Section
-    const buildingsHTML = stats.building_stats && stats.building_stats.length > 0
-        ? stats.building_stats.map(building => `
-            <div class="building-analysis-card">
-                <div class="card-name">${Utils.escapeHtml(building.name)}</div>
-                <div class="card-stats">
-                    <div class="stat-value">${building.total_units.toLocaleString()}</div>
-                    <div class="stat-label">TOTAL ASSETS</div>
+        const container = document.getElementById('stats-container');
+        if (!container) return;
+        
+        // Render 4 stat cards in a row - matching the image layout (NEW VERSION)
+        container.innerHTML = `
+            <div class="dashboard-stats-row">
+                <div class="stat-card-dashboard working">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-value">${stats.working_products}</div>
+                    <div class="stat-title">Working Products</div>
+                    <div class="stat-desc">In good condition</div>
+                </div>
+                <div class="stat-card-dashboard defective">
+                    <div class="stat-icon"><i class="fas fa-tools"></i></div>
+                    <div class="stat-value">${stats.defective_products}</div>
+                    <div class="stat-title">Defective</div>
+                    <div class="stat-desc">Needs repair/replacement</div>
+                </div>
+                <div class="stat-card-dashboard damaged">
+                    <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+                    <div class="stat-value">${stats.damaged_products}</div>
+                    <div class="stat-title">Damaged</div>
+                    <div class="stat-desc">Cannot be used</div>
+                </div>
+                <div class="stat-card-dashboard assigned">
+                    <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                    <div class="stat-value">${stats.assigned_products}</div>
+                    <div class="stat-title">Assigned</div>
+                    <div class="stat-desc">Assigned in units</div>
                 </div>
             </div>
-        `).join('')
-        : '<div class="building-analysis-card" style="grid-column:1/-1;text-align:center;padding:40px">No buildings with assets found</div>';
-    
-    // Render Category Analysis Section
-    const categoriesHTML = stats.category_stats && stats.category_stats.length > 0
-        ? stats.category_stats.map(category => `
-            <div class="category-analysis-card">
-                <div class="card-name">${Utils.escapeHtml(category.name)}</div>
-                <div class="card-stats">
-                    <div class="stat-value">${category.total_units.toLocaleString()}</div>
-                    <div class="stat-label">TOTAL ASSETS</div>
+        `;
+        
+        // Render Building Analysis Section
+        const buildingsHTML = stats.building_stats && stats.building_stats.length > 0
+            ? stats.building_stats.map(building => `
+                <div class="building-analysis-card">
+                    <div class="card-name">${Utils.escapeHtml(building.name)}</div>
+                    <div class="card-stats">
+                        <div class="stat-value">${building.total_units.toLocaleString()}</div>
+                        <div class="stat-label">TOTAL ASSETS</div>
+                    </div>
                 </div>
-            </div>
-        `).join('')
-        : '';
-    
-    // Check if we need to append the building and category sections
-    // Check if sections already exist, if not create them
-    let buildingsSection = document.getElementById('buildings-section');
-    let categoriesSection = document.getElementById('categories-section');
-    
-    if (!buildingsSection) {
-        // Create buildings section
-        buildingsSection = document.createElement('div');
-        buildingsSection.id = 'buildings-section';
-        buildingsSection.className = 'dashboard-section';
-        buildingsSection.innerHTML = `
-            <h3 class="section-title">
-                <i class="fas fa-building"></i> Building Analysis
-            </h3>
-            <div id="buildings-container" class="building-cards-grid"></div>
-        `;
-        container.parentNode.appendChild(buildingsSection);
-    }
-    
-    if (!categoriesSection && stats.category_stats && stats.category_stats.length > 0) {
-        // Create categories section
-        categoriesSection = document.createElement('div');
-        categoriesSection.id = 'categories-section';
-        categoriesSection.className = 'dashboard-section';
-        categoriesSection.innerHTML = `
-            <h3 class="section-title">
-                <i class="fas fa-tags"></i> Category Analysis
-            </h3>
-            <div id="categories-container" class="category-cards-grid"></div>
-        `;
-        container.parentNode.appendChild(categoriesSection);
-    }
-    
-    // Update buildings container
-    const buildingsContainer = document.getElementById('buildings-container');
-    if (buildingsContainer) {
-        buildingsContainer.innerHTML = buildingsHTML;
-    }
-    
-    // Update categories container
-    const categoriesContainer = document.getElementById('categories-container');
-    if (categoriesContainer) {
-        if (stats.category_stats && stats.category_stats.length > 0) {
-            categoriesContainer.innerHTML = categoriesHTML;
-            document.getElementById('categories-section').style.display = 'block';
-        } else {
-            if (document.getElementById('categories-section')) {
-                document.getElementById('categories-section').style.display = 'none';
+            `).join('')
+            : '<div class="building-analysis-card" style="grid-column:1/-1;text-align:center;padding:40px">No buildings with assets found</div>';
+        
+        // Render Category Analysis Section
+        const categoriesHTML = stats.category_stats && stats.category_stats.length > 0
+            ? stats.category_stats.map(category => `
+                <div class="category-analysis-card">
+                    <div class="card-name">${Utils.escapeHtml(category.name)}</div>
+                    <div class="card-stats">
+                        <div class="stat-value">${category.total_units.toLocaleString()}</div>
+                        <div class="stat-label">TOTAL ASSETS</div>
+                    </div>
+                </div>
+            `).join('')
+            : '';
+        
+        // Check if we need to append the building and category sections
+        // Check if sections already exist, if not create them
+        let buildingsSection = document.getElementById('buildings-section');
+        let categoriesSection = document.getElementById('categories-section');
+        
+        if (!buildingsSection) {
+            // Create buildings section
+            buildingsSection = document.createElement('div');
+            buildingsSection.id = 'buildings-section';
+            buildingsSection.className = 'dashboard-section';
+            buildingsSection.innerHTML = `
+                <h3 class="section-title">
+                    <i class="fas fa-building"></i> Building Analysis
+                </h3>
+                <div id="buildings-container" class="building-cards-grid"></div>
+            `;
+            container.parentNode.appendChild(buildingsSection);
+        }
+        
+        if (!categoriesSection && stats.category_stats && stats.category_stats.length > 0) {
+            // Create categories section
+            categoriesSection = document.createElement('div');
+            categoriesSection.id = 'categories-section';
+            categoriesSection.className = 'dashboard-section';
+            categoriesSection.innerHTML = `
+                <h3 class="section-title">
+                    <i class="fas fa-tags"></i> Category Analysis
+                </h3>
+                <div id="categories-container" class="category-cards-grid"></div>
+            `;
+            container.parentNode.appendChild(categoriesSection);
+        }
+        
+        // Update buildings container
+        const buildingsContainer = document.getElementById('buildings-container');
+        if (buildingsContainer) {
+            buildingsContainer.innerHTML = buildingsHTML;
+        }
+        
+        // Update categories container
+        const categoriesContainer = document.getElementById('categories-container');
+        if (categoriesContainer) {
+            if (stats.category_stats && stats.category_stats.length > 0) {
+                categoriesContainer.innerHTML = categoriesHTML;
+                document.getElementById('categories-section').style.display = 'block';
+            } else {
+                if (document.getElementById('categories-section')) {
+                    document.getElementById('categories-section').style.display = 'none';
+                }
             }
         }
-    }
-},
+    },
     
     // ═══════════════════════════════════════════════════════════════════════
     // PAGINATION METHODS
@@ -1926,8 +1927,8 @@ const DataService = {
                     <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})">
                         <i class="fas fa-trash"></i>
                     </button>
-                </td>
-            </tr>
+                 </td>
+             </tr>
         `).join('');
     },
     
@@ -2056,8 +2057,8 @@ const DataService = {
                     <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})">
                         <i class="fas fa-trash"></i>
                     </button>
-                </td>
-            </tr>
+                 </td>
+             </tr>
         `).join('');
     },
     
@@ -2221,7 +2222,7 @@ const DataService = {
                 <td>${m.quantity}</td>
                 <td>${Utils.escapeHtml(m.reference || '')}</td>
                 <td>${Utils.escapeHtml(m.notes || '')}</td>
-            </tr>
+             </tr>
         `).join('');
     },
     
@@ -2555,6 +2556,228 @@ const DataService = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// EXCEL IMPORT SERVICE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ExcelImportService = {
+    async importFromExcel(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    const results = await this.processExcelData(jsonData);
+                    resolve(results);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
+    },
+    
+    async processExcelData(data) {
+        const supabase = window.getSupabaseClient();
+        if (!supabase) throw new Error('Database unavailable');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+        
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            try {
+                // Map Excel columns to product fields (supports multiple column name variations)
+                const product = {
+                    name: row['Product Name'] || row['name'] || row['NAME'] || row['product_name'],
+                    sku: row['SKU'] || row['sku'] || row['Code'] || row['code'],
+                    description: row['Description'] || row['description'] || row['DESCRIPTION'] || '',
+                    stock_quantity: parseInt(row['Stock'] || row['stock_quantity'] || row['Quantity'] || row['quantity'] || 0),
+                    condition: row['Condition'] || row['condition'] || row['CONDITION'] || 'Working - Storage',
+                    assigned_to: row['Assigned To'] || row['assigned_to'] || row['Assigned'] || row['assigned'] || null,
+                    is_active: true,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Validate required fields
+                if (!product.name) {
+                    throw new Error('Product name is required');
+                }
+                
+                // Get or create category
+                if (row['Category'] || row['category'] || row['CATEGORY']) {
+                    const categoryName = row['Category'] || row['category'] || row['CATEGORY'];
+                    const category = await this.getOrCreateCategory(categoryName.trim());
+                    product.category_id = category.id;
+                }
+                
+                // Get or create building
+                if (row['Building'] || row['building'] || row['BUILDING']) {
+                    const buildingName = row['Building'] || row['building'] || row['BUILDING'];
+                    const building = await this.getOrCreateBuilding(buildingName.trim());
+                    product.building_id = building.id;
+                }
+                
+                // Get next available ID
+                const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
+                if (!nextId) {
+                    throw new Error('No available IDs. Maximum capacity reached.');
+                }
+                product.id = nextId;
+                
+                // Save to database
+                const { error } = await supabase
+                    .from(TABLES.PRODUCTS)
+                    .insert([product]);
+                
+                if (error) throw error;
+                
+                // Record initial stock movement if stock > 0
+                if (product.stock_quantity > 0) {
+                    await supabase.from(TABLES.MOVEMENTS).insert([{
+                        product_id: nextId,
+                        quantity: product.stock_quantity,
+                        movement_type: 'IN',
+                        reference: 'EXCEL_IMPORT',
+                        notes: `Imported from Excel - Row ${i + 2}`,
+                        user_id: AppState.currentUser?.id,
+                        created_at: new Date().toISOString()
+                    }]);
+                }
+                
+                successCount++;
+            } catch (error) {
+                errorCount++;
+                errors.push(`Row ${i + 2}: ${error.message}`);
+                console.error('Import error for row:', row, error);
+            }
+        }
+        
+        return { successCount, errorCount, errors };
+    },
+    
+    async getOrCreateCategory(name) {
+        const supabase = window.getSupabaseClient();
+        
+        // Try to find existing category
+        const { data: existing } = await supabase
+            .from(TABLES.CATEGORIES)
+            .select('id')
+            .ilike('name', name)
+            .limit(1);
+        
+        if (existing && existing.length > 0) {
+            return existing[0];
+        }
+        
+        // Create new category
+        const nextId = await Utils.getNextAvailableId(TABLES.CATEGORIES);
+        if (!nextId) throw new Error('No available IDs for category');
+        
+        const { data: newCategory, error } = await supabase
+            .from(TABLES.CATEGORIES)
+            .insert([{
+                id: nextId,
+                name: name,
+                description: `Auto-created from Excel import`,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return newCategory;
+    },
+    
+    async getOrCreateBuilding(name) {
+        const supabase = window.getSupabaseClient();
+        
+        // Try to find existing building
+        const { data: existing } = await supabase
+            .from(TABLES.BUILDINGS)
+            .select('id')
+            .ilike('name', name)
+            .limit(1);
+        
+        if (existing && existing.length > 0) {
+            return existing[0];
+        }
+        
+        // Create new building
+        const nextId = await Utils.getNextAvailableId(TABLES.BUILDINGS);
+        if (!nextId) throw new Error('No available IDs for building');
+        
+        const { data: newBuilding, error } = await supabase
+            .from(TABLES.BUILDINGS)
+            .insert([{
+                id: nextId,
+                name: name,
+                location_address: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return newBuilding;
+    },
+    
+    downloadTemplate() {
+        const template = [
+            {
+                'Product Name': 'Example Product',
+                'SKU': 'PRD-001',
+                'Description': 'Product description here',
+                'Category': 'Electronics',
+                'Building': 'Main Building',
+                'Stock': 10,
+                'Condition': 'Working - Storage',
+                'Assigned To': ''
+            },
+            {
+                'Product Name': 'Second Product',
+                'SKU': 'PRD-002',
+                'Description': 'Another product example',
+                'Category': 'Office Supplies',
+                'Building': 'Mabini A',
+                'Stock': 5,
+                'Condition': 'Working - Assigned',
+                'Assigned To': 'John Doe'
+            }
+        ];
+        
+        const ws = XLSX.utils.json_to_sheet(template);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Products Template');
+        
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 20 }, // Product Name
+            { wch: 15 }, // SKU
+            { wch: 30 }, // Description
+            { wch: 15 }, // Category
+            { wch: 15 }, // Building
+            { wch: 10 }, // Stock
+            { wch: 20 }, // Condition
+            { wch: 20 }  // Assigned To
+        ];
+        
+        XLSX.writeFile(wb, 'product_import_template.xlsx');
+        Utils.showNotification('Template downloaded successfully', 'success');
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // APPLICATION CONTROLLER
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2677,6 +2900,12 @@ const App = {
         // Toggle archived
         document.getElementById('toggle-archived')?.addEventListener('click', () => DataService.toggleShowArchived());
         
+        // Import Excel button
+        const importExcelBtn = document.getElementById('import-excel');
+        if (importExcelBtn) {
+            importExcelBtn.addEventListener('click', () => this.showExcelImportModal());
+        }
+        
         // Navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
@@ -2754,6 +2983,190 @@ const App = {
                 this.toggleInterface();
             }
         });
+    },
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXCEL IMPORT MODAL
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    showExcelImportModal() {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('excel-import-modal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'excel-import-modal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 550px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-file-excel"></i> Import Excel Data</h3>
+                        <button class="close-btn" onclick="closeModal('excel-import-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="import-info" style="margin-bottom: 20px; padding: 15px; background: #2f3850; border-radius: 8px;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Instructions:</strong>
+                            <ul style="margin-top: 10px; margin-bottom: 0;">
+                                <li>File must be .xlsx or .xls format</li>
+                                <li>Required column: <strong>Product Name, SKU, Description, Category, Building, Stock, Condition, Assigned To</strong></li>
+                                <li>Categories and Buildings will be auto-created if not found</li>
+                                <li>Maximum file size: 10MB</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Select Excel File:</label>
+                            <input type="file" id="excel-file-input" accept=".xlsx,.xls" class="form-control">
+                            <small class="form-text text-muted">Choose an Excel file to import product data</small>
+                        </div>
+                        
+                        <div id="import-progress" style="display: none;">
+                            <div class="progress-bar-container" style="background: #1a1f2e; border-radius: 4px; overflow: hidden; margin: 10px 0;">
+                                <div id="import-progress-bar" style="width: 0%; height: 4px; background: linear-gradient(90deg, #4361ee, #06d6a0); transition: width 0.3s;"></div>
+                            </div>
+                            <p id="import-status" style="margin-top: 10px; text-align: center;"></p>
+                        </div>
+                        
+                        <div id="import-results" style="display: none;" class="import-results"></div>
+                        
+                        <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button id="download-template-btn" class="btn btn-secondary">
+                                <i class="fas fa-download"></i> Download Template
+                            </button>
+                            <button id="confirm-import-btn" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Import
+                            </button>
+                            <button onclick="closeModal('excel-import-modal')" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Add event listeners for the modal buttons
+            const downloadBtn = document.getElementById('download-template-btn');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => ExcelImportService.downloadTemplate());
+            }
+            
+            const confirmBtn = document.getElementById('confirm-import-btn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', () => this.processExcelImport());
+            }
+        }
+        
+        // Reset modal state
+        const fileInput = document.getElementById('excel-file-input');
+        if (fileInput) fileInput.value = '';
+        
+        const progressDiv = document.getElementById('import-progress');
+        if (progressDiv) progressDiv.style.display = 'none';
+        
+        const resultsDiv = document.getElementById('import-results');
+        if (resultsDiv) {
+            resultsDiv.style.display = 'none';
+            resultsDiv.innerHTML = '';
+        }
+        
+        UIManager.openModal('excel-import-modal');
+    },
+    
+    async processExcelImport() {
+        const fileInput = document.getElementById('excel-file-input');
+        const file = fileInput?.files[0];
+        
+        if (!file) {
+            Utils.showNotification('Please select an Excel file', 'error');
+            return;
+        }
+        
+        // Check file extension
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(fileExt)) {
+            Utils.showNotification('Please select a valid Excel file (.xlsx or .xls)', 'error');
+            return;
+        }
+        
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            Utils.showNotification('File size exceeds 10MB limit', 'error');
+            return;
+        }
+        
+        // Show progress
+        const progressDiv = document.getElementById('import-progress');
+        const progressBar = document.getElementById('import-progress-bar');
+        const statusText = document.getElementById('import-status');
+        const importBtn = document.getElementById('confirm-import-btn');
+        const downloadBtn = document.getElementById('download-template-btn');
+        
+        progressDiv.style.display = 'block';
+        progressBar.style.width = '30%';
+        statusText.textContent = 'Reading file...';
+        
+        // Disable buttons during import
+        if (importBtn) importBtn.disabled = true;
+        if (downloadBtn) downloadBtn.disabled = true;
+        
+        try {
+            progressBar.style.width = '50%';
+            statusText.textContent = 'Processing data...';
+            
+            const results = await ExcelImportService.importFromExcel(file);
+            
+            progressBar.style.width = '100%';
+            statusText.textContent = 'Import completed!';
+            
+            // Show results
+            const resultsDiv = document.getElementById('import-results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = `
+                <div class="import-summary" style="padding: 15px; border-radius: 8px; ${results.errorCount > 0 ? 'background: rgba(220,53,69,0.1); border-left: 4px solid #dc3545;' : 'background: rgba(40,167,69,0.1); border-left: 4px solid #28a745;'}">
+                    <h4>Import Results:</h4>
+                    <p><strong style="color: #28a745;">✓ Successfully imported:</strong> ${results.successCount} product(s)</p>
+                    ${results.errorCount > 0 ? `<p><strong style="color: #dc3545;">✗ Failed:</strong> ${results.errorCount} product(s)</p>` : ''}
+                    ${results.errors.length > 0 ? `
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer; color: #dc3545;">View Errors (${results.errors.length})</summary>
+                            <ul style="margin-top: 10px; max-height: 200px; overflow-y: auto; padding-left: 20px;">
+                                ${results.errors.map(err => `<li style="color: #dc3545; font-size: 12px; margin: 5px 0;">${Utils.escapeHtml(err)}</li>`).join('')}
+                            </ul>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Reload products if any were imported
+            if (results.successCount > 0) {
+                if (AppState.currentSearchTerm) {
+                    await DataService.searchProductsPaginated(AppState.currentSearchTerm, 1);
+                } else {
+                    await DataService.loadProductsPaginated(1);
+                }
+                
+                // Close modal after 2.5 seconds
+                setTimeout(() => {
+                    UIManager.closeModal('excel-import-modal');
+                    Utils.showNotification(`Successfully imported ${results.successCount} product(s)!`, 'success');
+                }, 2500);
+            } else {
+                Utils.showNotification('No products were imported. Please check your file format and data.', 'error');
+                // Re-enable buttons
+                if (importBtn) importBtn.disabled = false;
+                if (downloadBtn) downloadBtn.disabled = false;
+            }
+            
+        } catch (error) {
+            console.error('Import failed:', error);
+            progressBar.style.width = '0%';
+            statusText.textContent = 'Import failed!';
+            Utils.showNotification('Import failed: ' + error.message, 'error');
+            
+            // Re-enable buttons
+            if (importBtn) importBtn.disabled = false;
+            if (downloadBtn) downloadBtn.disabled = false;
+        }
     },
     
     // ═══════════════════════════════════════════════════════════════════════
