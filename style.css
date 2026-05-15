@@ -531,7 +531,7 @@ BUILDING & CATEGORY ANALYSIS SECTIONS - FULLY RESPONSIVE
 .category-analysis-card {
     background: linear-gradient(135deg, #2f3850 0%, #1a1f2e 100%);
     border-radius: 16px;
-    padding: 20px;
+    padding: 17px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -558,9 +558,9 @@ BUILDING & CATEGORY ANALYSIS SECTIONS - FULLY RESPONSIVE
 
 .building-analysis-card .card-name,
 .category-analysis-card .card-name {
-    font-size: 18px;
+    font-size: 25px;
     font-weight: 600;
-    color: #fff;
+    color: #f8e9e9;
     margin-bottom: 15px;
 }
 
@@ -1084,14 +1084,14 @@ FORMS - RESPONSIVE
 }
 
 .form-control {
-    width: 100%;
-    height: 46px;
+    width: 75%;
+    height: 30px;
     padding: 0 var(--space-4);
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-medium);
     transition: all var(--transition-fast);
 }
 
@@ -2123,6 +2123,118 @@ INTERFACE 2 STYLES FOR DASHBOARD
 .interface-2 .stat-card-dashboard.assigned .stat-value,
 .interface-2 .stat-card-dashboard.assigned .stat-icon {
     color: #818cf8;
+}
+
+/* ============================================================================
+EXCEL IMPORT MODAL STYLES
+============================================================================ */
+#import-progress {
+    margin: 20px 0;
+}
+
+.progress-bar-container {
+    background: #1a1f2e;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#import-progress-bar {
+    width: 0%;
+    height: 4px;
+    background: linear-gradient(90deg, #4361ee, #06d6a0);
+    transition: width 0.3s;
+}
+
+.import-results {
+    margin-top: 20px;
+}
+
+.import-summary details {
+    margin-top: 10px;
+}
+
+.import-summary details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+}
+
+.import-summary details summary:hover {
+    color: var(--primary);
+}
+
+.import-summary details ul {
+    margin-top: 10px;
+    padding-left: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.import-summary details ul li {
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.import-info {
+    background: rgba(67, 97, 238, 0.1);
+    border-radius: 8px;
+}
+
+.import-info ul {
+    margin-left: 20px;
+    font-size: 13px;
+}
+
+.import-info li {
+    margin: 5px 0;
+    color: var(--text-secondary);
+}
+
+.interface-2 .import-info {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.interface-2 .import-info ul li {
+    color: #a0a4c4;
+}
+
+/* Responsive styles for Excel Import Modal */
+@media (max-width: 768px) {
+    .modal-content[style*="max-width: 550px"] {
+        max-width: 95% !important;
+    }
+    
+    .import-info ul {
+        margin-left: 15px;
+    }
+    
+    .import-info li {
+        font-size: 11px;
+    }
+    
+    .form-actions {
+        flex-wrap: wrap;
+    }
+    
+    .form-actions .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+    
+    .import-summary details ul {
+        max-height: 150px;
+    }
 }
 
 /* ============================================================================
