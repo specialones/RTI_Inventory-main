@@ -2462,53 +2462,84 @@ const DataService = {
     },
     
     async showBuildingAnalysis(container) {
-        const supabase = window.getSupabaseClient();
-        const { data: buildings } = await supabase
-            .from(TABLES.BUILDINGS)
-            .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
-            .order('id', { ascending: true });
+    const supabase = window.getSupabaseClient();
+    const { data: buildings } = await supabase
+        .from(TABLES.BUILDINGS)
+        .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
+        .order('id', { ascending: true });
+    
+    // Check which interface is active
+    const isInterface2 = AppState.currentInterface === 'interface2';
+    
+    let html = `
+        <div class="table-container">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Building</th>
+                        <th>${isInterface2 ? 'Total Assets' : 'PC-Desktop Units'}</th>
+                        ${isInterface2 ? '<th>Categories</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    let grandTotal = 0;
+    
+    (buildings || []).forEach(b => {
+        const products = b.products || [];
+        let totalUnits = 0;
+        let categoryInfo = '';
         
-        let html = `
-            <div class="table-container">
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Building</th>
-                            <th>PC-Desktop Units</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        let grandTotal = 0;
-        (buildings || []).forEach(b => {
-            const products = b.products || [];
+        if (isInterface2) {
+            // Interface 2: Count ALL products (office supplies & consumables)
+            totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+            grandTotal += totalUnits;
+            
+            // Collect unique categories for this building
+            const categories = new Set();
+            products.forEach(p => {
+                if (p.categories?.name) {
+                    categories.add(p.categories.name);
+                }
+            });
+            categoryInfo = Array.from(categories).slice(0, 3).join(', ');
+            if (categories.size > 3) categoryInfo += ` +${categories.size - 3} more`;
+            if (categories.size === 0) categoryInfo = '—';
+        } else {
+            // Interface 1: Only PC-Desktop units (original behavior)
             const pcDesktopProducts = products.filter(p =>
                 p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
             );
-            const totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+            totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
             grandTotal += totalUnits;
-            
-            html += `
-                <tr>
-                    <td>${b.id}</td>
-                    <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
-                    <td>${totalUnits}</td>
-                </tr>
-            `;
-        });
+        }
         
         html += `
-                <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
-                    <td colspan="2" style="text-align:right;color:#e0e0e0">TOTAL PC-DESKTOP UNITS:</td>
-                    <td style="color:#06d6a0;font-size:16px">${grandTotal}</td>
-                </tr>
-            </tbody></table></div>
+            <tr>
+                <td>${b.id}</td>
+                <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
+                <td style="color:#06d6a0;font-weight:bold">${totalUnits.toLocaleString()}</td>
+                ${isInterface2 ? `<td style="font-size:12px;color:#aaa">${Utils.escapeHtml(categoryInfo)}</td>` : ''}
+            </tr>
         `;
-        
-        container.innerHTML = html;
-    },
+    });
+    
+    const totalLabel = isInterface2 ? 'TOTAL ASSETS:' : 'TOTAL PC-DESKTOP UNITS:';
+    
+    html += `
+            <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
+                <td colspan="2" style="text-align:right;color:#e0e0e0">${totalLabel}</td>
+                <td style="color:#06d6a0;font-size:16px">${grandTotal.toLocaleString()}</td>
+                ${isInterface2 ? '<td></td>' : ''}
+            </tr>
+        </tbody>
+    </table></div>
+    `;
+    
+    container.innerHTML = html;
+},
     
     async showMovementHistory(container) {
         const supabase = window.getSupabaseClient();
