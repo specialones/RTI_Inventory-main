@@ -2461,51 +2461,84 @@ const DataService = {
         container.innerHTML = html;
     },
     
-    async showBuildingAnalysis(container) {,
+   async showBuildingAnalysis(container) {
+    const supabase = window.getSupabaseClient();
+    const { data: buildings } = await supabase
+        .from(TABLES.BUILDINGS)
+        .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
+        .order('id', { ascending: true });
     
-    async showMovementHistory(container) {
-        const supabase = window.getSupabaseClient();
-        const { data } = await supabase
-            .from(TABLES.MOVEMENTS)
-            .select('*, products:product_id(name)')
-            .order('created_at', { ascending: false })
-            .limit(100);
+    // Check which interface is active
+    const isInterface2 = AppState.currentInterface === 'interface2';
+    
+    let html = `
+        <div class="table-container">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Building</th>
+                        <th>${isInterface2 ? 'Total Assets' : 'PC-Desktop Units'}</th>
+                        ${isInterface2 ? '<th>Categories</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    let grandTotal = 0;
+    
+    (buildings || []).forEach(b => {
+        const products = b.products || [];
+        let totalUnits = 0;
+        let categoryInfo = '';
         
-        if (!data?.length) {
-            container.innerHTML = '<p style="text-align:center;padding:40px">No movements found</p>';
-            return;
+        if (isInterface2) {
+            // Interface 2: Count ALL products (office supplies & consumables)
+            totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+            grandTotal += totalUnits;
+            
+            // Collect unique categories for this building
+            const categories = new Set();
+            products.forEach(p => {
+                if (p.categories?.name) {
+                    categories.add(p.categories.name);
+                }
+            });
+            categoryInfo = Array.from(categories).slice(0, 3).join(', ');
+            if (categories.size > 3) categoryInfo += ` +${categories.size - 3} more`;
+            if (categories.size === 0) categoryInfo = '—';
+        } else {
+            // Interface 1: Only PC-Desktop units (original behavior)
+            const pcDesktopProducts = products.filter(p =>
+                p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
+            );
+            totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+            grandTotal += totalUnits;
         }
         
-        let html = `
-            <div class="table-container">
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Product</th>
-                            <th>Type</th>
-                            <th>Qty</th>
-                            <th>Reference</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        html += `
+            <tr>
+                <td>${b.id}</td>
+                <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
+                <td style="color:#06d6a0;font-weight:bold">${totalUnits.toLocaleString()}</td>
+                ${isInterface2 ? `<td style="font-size:12px;color:#aaa">${Utils.escapeHtml(categoryInfo)}</td>` : ''}
+            </tr>
         `;
-        
-        data.forEach(m => {
-            html += `
-                <tr>
-                    <td>${Utils.formatDateTime(m.created_at)}</td>
-                    <td>${Utils.escapeHtml(m.products?.name || 'Unknown')}</td>
-                    <td><span class="movement-type ${m.movement_type === 'IN' ? 'in' : 'out'}">${m.movement_type}</span></td>
-                    <td>${m.quantity}</td>
-                    <td>${Utils.escapeHtml(m.reference || '-')}</td>
-                </tr>
-            `;
-        });
-        
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-    }
+    });
+    
+    const totalLabel = isInterface2 ? 'TOTAL ASSETS:' : 'TOTAL PC-DESKTOP UNITS:';
+    
+    html += `
+            <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
+                <td colspan="2" style="text-align:right;color:#e0e0e0">${totalLabel}</td>
+                <td style="color:#06d6a0;font-size:16px">${grandTotal.toLocaleString()}</td>
+                ${isInterface2 ? '<td></td>' : ''}
+            </tr>
+        </tbody>
+    </table></div>
+    `;
+    
+    container.innerHTML = html;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
