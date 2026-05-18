@@ -2461,54 +2461,7 @@ const DataService = {
         container.innerHTML = html;
     },
     
-    async showBuildingAnalysis(container) {
-        const supabase = window.getSupabaseClient();
-        const { data: buildings } = await supabase
-            .from(TABLES.BUILDINGS)
-            .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
-            .order('id', { ascending: true });
-        
-        let html = `
-            <div class="table-container">
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Building</th>
-                            <th>PC-Desktop Units</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        let grandTotal = 0;
-        (buildings || []).forEach(b => {
-            const products = b.products || [];
-            const pcDesktopProducts = products.filter(p =>
-                p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
-            );
-            const totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-            grandTotal += totalUnits;
-            
-            html += `
-                <tr>
-                    <td>${b.id}</td>
-                    <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
-                    <td>${totalUnits}</td>
-                </tr>
-            `;
-        });
-        
-        html += `
-                <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
-                    <td colspan="2" style="text-align:right;color:#e0e0e0">TOTAL PC-DESKTOP UNITS:</td>
-                    <td style="color:#06d6a0;font-size:16px">${grandTotal}</td>
-                </tr>
-            </tbody></table></div>
-        `;
-        
-        container.innerHTML = html;
-    },
+    async showBuildingAnalysis(container) {,
     
     async showMovementHistory(container) {
         const supabase = window.getSupabaseClient();
