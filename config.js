@@ -42,7 +42,7 @@ DATE_FORMAT: { year: 'numeric', month: 'long', day: 'numeric' },
 MOVEMENT_TYPES: { IN: 'IN', OUT: 'OUT' },
 STATUS: { OK: 'OK', LOW: 'LOW' },
 MIN_ID: 1,
-MAX_ID: 1000
+MAX_ID: 1000000000
 });
 // Supabase Client Management
 let supabaseClient = null;
