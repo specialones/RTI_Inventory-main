@@ -1,5 +1,5 @@
 /**
- * Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete & Excel Import)
+ * Inventory Pro - Complete Application Logic (MERGED VERSION with Soft Delete, Excel Import & Image Upload)
  * Features:
  * - bcrypt password hashing
  * - Enhanced ID search with highlighting
@@ -17,6 +17,7 @@
  * - Full search across all fields with pagination support
  * - Search on Enter key press only
  * - Excel Import functionality with template download
+ * - IMAGE UPLOAD: Upload up to 5 images per product with compression and preview
  */
 'use strict';
 
@@ -50,22 +51,20 @@ const SupabaseManager = {
     
     initializeClients() {
         try {
-            // Initialize Interface 1 client
             if (DatabaseConfig.interface1.supabaseUrl && DatabaseConfig.interface1.supabaseKey) {
                 this.clients.interface1 = supabase.createClient(
                     DatabaseConfig.interface1.supabaseUrl,
                     DatabaseConfig.interface1.supabaseKey
                 );
-                console.log('Interface 1 Supabase client initialized (Computer Equipment & Electronics)');
+                console.log('Interface 1 Supabase client initialized');
             }
             
-            // Initialize Interface 2 client
             if (DatabaseConfig.interface2.supabaseUrl && DatabaseConfig.interface2.supabaseKey) {
                 this.clients.interface2 = supabase.createClient(
                     DatabaseConfig.interface2.supabaseUrl,
                     DatabaseConfig.interface2.supabaseKey
                 );
-                console.log('Interface 2 Supabase client initialized (Office Supplies & Consumables)');
+                console.log('Interface 2 Supabase client initialized');
             }
             
             return true;
@@ -79,7 +78,6 @@ const SupabaseManager = {
         if (!interfaceName) {
             interfaceName = AppState.currentInterface;
         }
-        
         const client = this.clients[interfaceName];
         if (!client) {
             console.error(`No Supabase client found for interface: ${interfaceName}`);
@@ -92,10 +90,6 @@ const SupabaseManager = {
         return this.getClient(AppState.currentInterface);
     }
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// GLOBAL HELPERS FOR SUPABASE ACCESS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 window.getSupabaseClient = () => SupabaseManager.getCurrentClient();
 window.getInterfaceClient = (interfaceName) => SupabaseManager.getClient(interfaceName);
@@ -127,30 +121,19 @@ const AppState = {
     
     interfaceStates: {
         interface1: {
-            products: [],
-            categories: [],
-            buildings: [],
-            movements: [],
-            selectedProductId: null,
-            showArchived: false,
-            currentSearchTerm: null,
-            currentSearchType: null,
+            products: [], categories: [], buildings: [], movements: [],
+            selectedProductId: null, showArchived: false,
+            currentSearchTerm: null, currentSearchType: null,
             pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         },
         interface2: {
-            products: [],
-            categories: [],
-            buildings: [],
-            movements: [],
-            selectedProductId: null,
-            showArchived: false,
-            currentSearchTerm: null,
-            currentSearchType: null,
+            products: [], categories: [], buildings: [], movements: [],
+            selectedProductId: null, showArchived: false,
+            currentSearchTerm: null, currentSearchType: null,
             pagination: { currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0 }
         }
     },
     
-    // Reset all state
     reset() {
         this.currentUser = null;
         this.products = [];
@@ -184,7 +167,6 @@ const AppState = {
         }
     },
     
-    // Save current interface state
     saveCurrentState() {
         this.interfaceStates[this.currentInterface] = {
             products: [...this.products],
@@ -199,7 +181,6 @@ const AppState = {
         };
     },
     
-    // Load interface state
     loadInterfaceState(interfaceName) {
         const state = this.interfaceStates[interfaceName];
         if (state) {
@@ -215,7 +196,6 @@ const AppState = {
         }
     },
     
-    // Interface label helpers
     getCurrentInterfaceLabel() {
         return DatabaseConfig[this.currentInterface]?.label || 'Unknown';
     },
@@ -230,7 +210,6 @@ const AppState = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const Utils = {
-    // String utilities
     escapeHtml(text) {
         if (text == null) return '';
         const div = document.createElement('div');
@@ -238,7 +217,6 @@ const Utils = {
         return div.innerHTML;
     },
     
-    // Date formatting
     formatDate(dateString) {
         if (!dateString) return 'N/A';
         try {
@@ -257,7 +235,6 @@ const Utils = {
         }
     },
     
-    // Performance utilities
     debounce(func, wait) {
         let timeout;
         return (...args) => {
@@ -277,7 +254,6 @@ const Utils = {
         };
     },
     
-    // Validation utilities
     isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
@@ -294,7 +270,6 @@ const Utils = {
         return isNaN(parsed) ? defaultValue : parsed;
     },
     
-    // ID validation
     validateIdRange(id) {
         const numId = parseInt(id, 10);
         if (isNaN(numId)) {
@@ -313,7 +288,6 @@ const Utils = {
         return numId;
     },
     
-    // Database ID helpers
     async getNextAvailableId(tableName) {
         const supabase = window.getSupabaseClient();
         if (!supabase) return null;
@@ -321,9 +295,7 @@ const Utils = {
         try {
             const { data, error } = await supabase
                 .from(tableName)
-                .select('id')
-                .eq('is_active', true)
-                .order('id', { ascending: true });
+                .select('id');
             
             if (error) throw error;
             
@@ -356,7 +328,6 @@ const Utils = {
         return false;
     },
     
-    // UI notification
     showNotification(message, type = 'info', duration = 3000) {
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
@@ -382,7 +353,6 @@ const Utils = {
         }, duration);
     },
     
-    // Form validation
     validateForm(formId, rules) {
         const form = document.getElementById(formId);
         if (!form) return { isValid: false, errors: ['Form not found'] };
@@ -409,7 +379,6 @@ const Utils = {
         return { isValid: errors.length === 0, errors };
     },
     
-    // Password utilities
     async hashPassword(password) {
         if (typeof bcrypt !== 'undefined') {
             const salt = await bcrypt.genSalt(10);
@@ -426,7 +395,6 @@ const Utils = {
         return password === hash;
     },
     
-    // Condition badge helper
     getConditionBadge(condition) {
         const lowerCondition = (condition || '').toLowerCase();
         let badgeClass = 'working-storage';
@@ -456,7 +424,6 @@ const Utils = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const UIManager = {
-    // Loading state
     showLoading() {
         const el = document.getElementById('loading-overlay');
         if (el) {
@@ -473,7 +440,6 @@ const UIManager = {
         }
     },
     
-    // Error handling
     showError(elementId, message, duration = 5000) {
         const el = document.getElementById(elementId);
         if (!el) return;
@@ -500,7 +466,6 @@ const UIManager = {
         }
     },
     
-    // View management
     showView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const target = document.getElementById(viewId);
@@ -528,14 +493,12 @@ const UIManager = {
         }
     },
     
-    // Navigation
     updateNavigation(activeView) {
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.toggle('active', item.dataset.view === activeView);
         });
     },
     
-    // Modal management
     openModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
@@ -552,7 +515,6 @@ const UIManager = {
         }
     },
     
-    // Date/time display
     updateDateTime() {
         const dateEl = document.getElementById('current-date');
         const timeEl = document.getElementById('current-time');
@@ -572,7 +534,6 @@ const UIManager = {
         if (el) el.textContent = new Date().toLocaleDateString('en-US', AppConfig.DATE_FORMAT);
     },
     
-    // User interface
     updateUserUI() {
         const nameEl = document.getElementById('user-name');
         const roleEl = document.getElementById('user-role');
@@ -581,13 +542,11 @@ const UIManager = {
         if (roleEl) roleEl.textContent = AppState.currentUser?.role || 'User';
     },
     
-    // Form utilities
     clearForm(formId) {
         const form = document.getElementById(formId);
         if (form) form.reset();
     },
     
-    // Interface indicators
     updateInterfaceIndicator() {
         const indicator = document.getElementById('interface-indicator');
         if (indicator) indicator.textContent = AppState.getCurrentInterfaceShortLabel();
@@ -609,6 +568,267 @@ const UIManager = {
         }
     }
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMAGE UPLOAD SERVICE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ImageUploadService = {
+    uploadedImages: [],
+    currentViewerIndex: 0,
+    tempViewImage: null,
+    
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    },
+    
+    compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, file.type, quality);
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    },
+    
+    async addImages(files) {
+        const maxImages = 5;
+        const currentCount = this.uploadedImages.length;
+        
+        if (currentCount + files.length > maxImages) {
+            Utils.showNotification(`Maximum ${maxImages} images allowed`, 'error');
+            return;
+        }
+        
+        for (const file of files) {
+            if (!file.type.startsWith('image/')) {
+                Utils.showNotification(`${file.name} is not an image file`, 'error');
+                continue;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                Utils.showNotification(`${file.name} exceeds 5MB limit`, 'error');
+                continue;
+            }
+            
+            try {
+                const compressedBlob = await this.compressImage(file);
+                const base64 = await this.fileToBase64(compressedBlob);
+                
+                this.uploadedImages.push({
+                    id: Date.now() + Math.random(),
+                    file: compressedBlob,
+                    base64: base64,
+                    name: file.name
+                });
+            } catch (error) {
+                console.error('Failed to process image:', error);
+                Utils.showNotification(`Failed to process ${file.name}`, 'error');
+            }
+        }
+        
+        this.renderImagePreviews();
+        this.updateImagesData();
+    },
+    
+    removeImage(imageId) {
+        this.uploadedImages = this.uploadedImages.filter(img => img.id !== imageId);
+        this.renderImagePreviews();
+        this.updateImagesData();
+    },
+    
+    renderImagePreviews() {
+        const container = document.getElementById('image-preview-container');
+        if (!container) return;
+        
+        if (this.uploadedImages.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">No images uploaded. Click "Upload Images" to add product photos.</div>';
+            return;
+        }
+        
+        container.innerHTML = this.uploadedImages.map(img => `
+            <div class="image-preview-item" data-image-id="${img.id}">
+                <img src="${img.base64}" alt="Product image" onclick="ImageUploadService.viewImage(${img.id})">
+                <button type="button" class="image-remove-btn" onclick="event.stopPropagation(); ImageUploadService.removeImage(${img.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    },
+    
+    updateImagesData() {
+        const hiddenInput = document.getElementById('product-images-data');
+        if (hiddenInput) {
+            const imagesData = this.uploadedImages.map(img => img.base64);
+            hiddenInput.value = JSON.stringify(imagesData);
+        }
+    },
+    
+    loadImages(imagesData) {
+        this.uploadedImages = [];
+        if (imagesData && Array.isArray(imagesData) && imagesData.length > 0) {
+            imagesData.forEach((base64, index) => {
+                if (base64 && typeof base64 === 'string' && base64.startsWith('data:image')) {
+                    this.uploadedImages.push({
+                        id: Date.now() + index + Math.random(),
+                        base64: base64,
+                        name: `image_${index}`
+                    });
+                }
+            });
+            this.renderImagePreviews();
+            this.updateImagesData();
+        } else {
+            this.renderImagePreviews();
+            this.updateImagesData();
+        }
+    },
+    
+    clearImages() {
+        this.uploadedImages = [];
+        this.renderImagePreviews();
+        this.updateImagesData();
+    },
+    
+    viewImage(imageId) {
+        const index = this.uploadedImages.findIndex(img => img.id === imageId);
+        if (index !== -1) {
+            this.currentViewerIndex = index;
+            this.showImageViewer();
+        }
+    },
+    
+    viewImageFromData(imageBase64) {
+        this.tempViewImage = imageBase64;
+        this.showSingleImageViewer();
+    },
+    
+    showSingleImageViewer() {
+        let modal = document.getElementById('image-viewer-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'image-viewer-modal';
+            modal.className = 'modal image-viewer-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-images"></i> Product Image</h3>
+                        <button class="close-btn" onclick="closeModal('image-viewer-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <img id="viewer-image" src="" alt="Product image">
+                        <div class="image-counter" id="image-counter"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        const img = document.getElementById('viewer-image');
+        if (img && this.tempViewImage) {
+            img.src = this.tempViewImage;
+            const counter = document.getElementById('image-counter');
+            if (counter) counter.textContent = '1 of 1';
+        }
+        
+        UIManager.openModal('image-viewer-modal');
+    },
+    
+    showImageViewer() {
+        let modal = document.getElementById('image-viewer-modal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'image-viewer-modal';
+            modal.className = 'modal image-viewer-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-images"></i> Product Images</h3>
+                        <button class="close-btn" onclick="closeModal('image-viewer-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <img id="viewer-image" src="" alt="Product image">
+                        <div class="image-navigation">
+                            <button class="btn btn-secondary" onclick="ImageUploadService.prevImage()">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <button class="btn btn-secondary" onclick="ImageUploadService.nextImage()">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div id="image-counter" class="image-counter"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        this.updateViewerImage();
+        UIManager.openModal('image-viewer-modal');
+    },
+    
+    updateViewerImage() {
+        const img = document.getElementById('viewer-image');
+        const counter = document.getElementById('image-counter');
+        
+        if (img && this.uploadedImages[this.currentViewerIndex]) {
+            img.src = this.uploadedImages[this.currentViewerIndex].base64;
+            if (counter) {
+                counter.textContent = `${this.currentViewerIndex + 1} of ${this.uploadedImages.length}`;
+            }
+        }
+    },
+    
+    nextImage() {
+        if (this.currentViewerIndex < this.uploadedImages.length - 1) {
+            this.currentViewerIndex++;
+            this.updateViewerImage();
+        }
+    },
+    
+    prevImage() {
+        if (this.currentViewerIndex > 0) {
+            this.currentViewerIndex--;
+            this.updateViewerImage();
+        }
+    }
+};
+
+window.ImageUploadService = ImageUploadService;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AUTHENTICATION SERVICE
@@ -770,10 +990,6 @@ const AuthService = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DataService = {
-    // ═══════════════════════════════════════════════════════════════════════
-    // DASHBOARD METHODS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async loadDashboard() {
         try {
             UIManager.showLoading();
@@ -791,7 +1007,6 @@ const DataService = {
         const supabase = window.getSupabaseClient();
         if (!supabase) throw new Error('Database unavailable');
         
-        // Get all active products
         const { data: products, error } = await supabase
             .from(TABLES.PRODUCTS)
             .select(`stock_quantity, condition, category_id, building_id, buildings:building_id(id, name, location_address)`)
@@ -799,7 +1014,6 @@ const DataService = {
         
         if (error) throw error;
         
-        // Calculate basic stats
         const totalProducts = products?.length || 0;
         const totalItems = products?.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) || 0;
         const defectiveProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('defective')).length || 0;
@@ -807,7 +1021,32 @@ const DataService = {
         const assignedProducts = products?.filter(p => (p.condition || '').toLowerCase().includes('assigned')).length || 0;
         const workingProducts = totalProducts - defectiveProducts - damagedProducts;
         
-        // Get today's movements
+        const workingInStorage = products?.filter(p => {
+            const condition = (p.condition || '').toLowerCase();
+            const isWorking = !condition.includes('defective') && !condition.includes('damaged');
+            const isNotAssigned = !condition.includes('assigned');
+            return isWorking && isNotAssigned;
+        }) || [];
+        
+        const workingInStorageCount = workingInStorage.length;
+        const workingInStorageItems = workingInStorage.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+        
+        const workingInStorageByBuilding = {};
+        workingInStorage.forEach(product => {
+            const buildingName = product.buildings?.name || 'Unassigned';
+            if (!workingInStorageByBuilding[buildingName]) {
+                workingInStorageByBuilding[buildingName] = {
+                    building_id: product.building_id,
+                    building_name: buildingName,
+                    product_count: 0,
+                    total_units: 0,
+                    products: []
+                };
+            }
+            workingInStorageByBuilding[buildingName].product_count++;
+            workingInStorageByBuilding[buildingName].total_units += (product.stock_quantity || 0);
+        });
+        
         const today = new Date().toISOString().split('T')[0];
         const { data: todayMovements } = await supabase
             .from(TABLES.MOVEMENTS)
@@ -819,23 +1058,19 @@ const DataService = {
         const todayOutbound = todayMovements?.filter(m => m.movement_type === 'OUT')
             .reduce((sum, m) => sum + (m.quantity || 0), 0) || 0;
         
-        // Get counts
         const { count: categoriesCount } = await supabase
             .from(TABLES.CATEGORIES)
             .select('*', { count: 'exact', head: true });
         
-        // Get building stats
         const { data: buildings } = await supabase
             .from(TABLES.BUILDINGS)
-            .select('*, products:products(id, stock_quantity)');
+            .select('*, products:products(id, stock_quantity, condition)');
         
-        // Get category stats with products
         const { data: categories } = await supabase
             .from(TABLES.CATEGORIES)
             .select('*, products:products(id, stock_quantity)')
             .order('id', { ascending: true });
         
-        // Group buildings: Voyager (A, B, C combined), Mabini (A, B, C combined)
         const voyagerBuildings = [];
         const mabiniBuildings = [];
         const otherBuildings = [];
@@ -854,19 +1089,16 @@ const DataService = {
             }
         });
         
-        // Calculate Voyager combined stats
         const voyagerTotalUnits = voyagerBuildings.reduce((sum, building) => {
             const buildingProducts = building.products || [];
             return sum + buildingProducts.reduce((pSum, p) => pSum + (p.stock_quantity || 0), 0);
         }, 0);
         
-        // Calculate Mabini combined stats
         const mabiniTotalUnits = mabiniBuildings.reduce((sum, building) => {
             const buildingProducts = building.products || [];
             return sum + buildingProducts.reduce((pSum, p) => pSum + (p.stock_quantity || 0), 0);
         }, 0);
         
-        // Create building stats array
         let buildingStats = [];
         
         if (voyagerBuildings.length > 0) {
@@ -899,7 +1131,6 @@ const DataService = {
             });
         });
         
-        // Create category stats array
         let categoryStats = [];
         
         (categories || []).forEach(category => {
@@ -929,7 +1160,12 @@ const DataService = {
             categories_count: categoriesCount || 0,
             buildings_count: buildings?.length || 0,
             building_stats: buildingStats,
-            category_stats: categoryStats
+            category_stats: categoryStats,
+            working_in_storage: {
+                count: workingInStorageCount,
+                total_units: workingInStorageItems,
+                by_building: Object.values(workingInStorageByBuilding)
+            }
         };
     },
     
@@ -937,7 +1173,6 @@ const DataService = {
         const container = document.getElementById('stats-container');
         if (!container) return;
         
-        // Render 4 stat cards in a row - matching the image layout (NEW VERSION)
         container.innerHTML = `
             <div class="dashboard-stats-row">
                 <div class="stat-card-dashboard working">
@@ -967,39 +1202,62 @@ const DataService = {
             </div>
         `;
         
-        // Render Building Analysis Section
-        const buildingsHTML = stats.building_stats && stats.building_stats.length > 0
-            ? stats.building_stats.map(building => `
-                <div class="building-analysis-card">
-                    <div class="card-name">${Utils.escapeHtml(building.name)}</div>
-                    <div class="card-stats">
-                        <div class="stat-value">${building.total_units.toLocaleString()}</div>
-                        <div class="stat-label">TOTAL ASSETS</div>
+        const workingInStorageHTML = stats.working_in_storage && stats.working_in_storage.count > 0
+            ? `
+                <div class="working-storage-summary">
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <div class="stat-label">Total Products</div>
+                            <div class="stat-value-large">${stats.working_in_storage.count}</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-label">Total Units</div>
+                            <div class="stat-value-large">${stats.working_in_storage.total_units.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="storage-buildings-grid">
+                        ${stats.working_in_storage.by_building.map(building => `
+                            <div class="storage-building-card">
+                                <div class="building-header">
+                                    <i class="fas fa-warehouse"></i>
+                                    <span class="building-name">${Utils.escapeHtml(building.building_name)}</span>
+                                </div>
+                                <div class="building-details">
+                                    <div class="detail">
+                                        <span class="detail-label">Products:</span>
+                                        <span class="detail-value">${building.product_count}</span>
+                                    </div>
+                                    <div class="detail">
+                                        <span class="detail-label">Total Units:</span>
+                                        <span class="detail-value">${building.total_units.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
-            `).join('')
-            : '<div class="building-analysis-card" style="grid-column:1/-1;text-align:center;padding:40px">No buildings with assets found</div>';
+            `
+            : '<div class="working-storage-empty">No working products in storage</div>';
         
-        // Render Category Analysis Section
-        const categoriesHTML = stats.category_stats && stats.category_stats.length > 0
-            ? stats.category_stats.map(category => `
-                <div class="category-analysis-card">
-                    <div class="card-name">${Utils.escapeHtml(category.name)}</div>
-                    <div class="card-stats">
-                        <div class="stat-value">${category.total_units.toLocaleString()}</div>
-                        <div class="stat-label">TOTAL ASSETS</div>
-                    </div>
-                </div>
-            `).join('')
-            : '';
-        
-        // Check if we need to append the building and category sections
-        // Check if sections already exist, if not create them
+        let workingStorageSection = document.getElementById('working-storage-section');
         let buildingsSection = document.getElementById('buildings-section');
         let categoriesSection = document.getElementById('categories-section');
         
+        if (!workingStorageSection) {
+            workingStorageSection = document.createElement('div');
+            workingStorageSection.id = 'working-storage-section';
+            workingStorageSection.className = 'dashboard-section';
+            workingStorageSection.innerHTML = `
+                <h3 class="section-title">
+                    <i class="fas fa-boxes"></i> Working - In Storage
+                    <span class="section-badge">Available Assets</span>
+                </h3>
+                <div id="working-storage-container" class="working-storage-container"></div>
+            `;
+            container.parentNode.appendChild(workingStorageSection);
+        }
+        
         if (!buildingsSection) {
-            // Create buildings section
             buildingsSection = document.createElement('div');
             buildingsSection.id = 'buildings-section';
             buildingsSection.className = 'dashboard-section';
@@ -1013,7 +1271,6 @@ const DataService = {
         }
         
         if (!categoriesSection && stats.category_stats && stats.category_stats.length > 0) {
-            // Create categories section
             categoriesSection = document.createElement('div');
             categoriesSection.id = 'categories-section';
             categoriesSection.className = 'dashboard-section';
@@ -1026,17 +1283,38 @@ const DataService = {
             container.parentNode.appendChild(categoriesSection);
         }
         
-        // Update buildings container
-        const buildingsContainer = document.getElementById('buildings-container');
-        if (buildingsContainer) {
-            buildingsContainer.innerHTML = buildingsHTML;
+        const workingStorageContainer = document.getElementById('working-storage-container');
+        if (workingStorageContainer) {
+            workingStorageContainer.innerHTML = workingInStorageHTML;
         }
         
-        // Update categories container
+        const buildingsContainer = document.getElementById('buildings-container');
+        if (buildingsContainer) {
+            buildingsContainer.innerHTML = stats.building_stats && stats.building_stats.length > 0
+                ? stats.building_stats.map(building => `
+                    <div class="building-analysis-card">
+                        <div class="card-name">${Utils.escapeHtml(building.name)}</div>
+                        <div class="card-stats">
+                            <div class="stat-value">${building.total_units.toLocaleString()}</div>
+                            <div class="stat-label">TOTAL ASSETS</div>
+                        </div>
+                    </div>
+                `).join('')
+                : '<div class="building-analysis-card" style="grid-column:1/-1;text-align:center;padding:40px">No buildings with assets found</div>';
+        }
+        
         const categoriesContainer = document.getElementById('categories-container');
         if (categoriesContainer) {
             if (stats.category_stats && stats.category_stats.length > 0) {
-                categoriesContainer.innerHTML = categoriesHTML;
+                categoriesContainer.innerHTML = stats.category_stats.map(category => `
+                    <div class="category-analysis-card">
+                        <div class="card-name">${Utils.escapeHtml(category.name)}</div>
+                        <div class="card-stats">
+                            <div class="stat-value">${category.total_units.toLocaleString()}</div>
+                            <div class="stat-label">TOTAL ASSETS</div>
+                        </div>
+                    </div>
+                `).join('');
                 document.getElementById('categories-section').style.display = 'block';
             } else {
                 if (document.getElementById('categories-section')) {
@@ -1045,10 +1323,6 @@ const DataService = {
             }
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // PAGINATION METHODS
-    // ═══════════════════════════════════════════════════════════════════════
     
     async getPaginatedProducts(page = 1, itemsPerPage = null) {
         const supabase = window.getSupabaseClient();
@@ -1142,7 +1416,6 @@ const DataService = {
             startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
         
-        // First page button
         if (startPage > 1) {
             pagesHTML += `<button class="pagination-btn" onclick="window.goToPage(1)" title="Page 1">1</button>`;
             if (startPage > 2) {
@@ -1150,12 +1423,10 @@ const DataService = {
             }
         }
         
-        // Page numbers
         for (let i = startPage; i <= endPage; i++) {
             pagesHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="window.goToPage(${i})" title="Page ${i}">${i}</button>`;
         }
         
-        // Last page button
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) {
                 pagesHTML += `<span class="pagination-ellipsis">...</span>`;
@@ -1213,7 +1484,6 @@ const DataService = {
     async goToPage(page) {
         if (page < 1 || page > AppState.pagination.totalPages) return;
         
-        // Check if we're in search mode
         if (AppState.currentSearchTerm) {
             await this.searchProductsPaginated(AppState.currentSearchTerm, page);
         } else {
@@ -1226,17 +1496,12 @@ const DataService = {
         AppState.pagination.itemsPerPage = itemsPerPage;
         AppState.pagination.currentPage = 1;
         
-        // Check if we're in search mode
         if (AppState.currentSearchTerm) {
             await this.searchProductsPaginated(AppState.currentSearchTerm, 1);
         } else {
             await this.loadProductsPaginated(1);
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // PRODUCTS METHODS
-    // ═══════════════════════════════════════════════════════════════════════
     
     async loadProducts() {
         await this.loadProductsPaginated(1);
@@ -1249,7 +1514,7 @@ const DataService = {
         if (!products?.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" style="text-align:center;padding:30px;color:var(--text-secondary)">
+                    <td colspan="11" style="text-align:center;padding:30px;color:var(--text-secondary)">
                         <i class="fas fa-box-open" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.5"></i>
                         No products found
                     </td>
@@ -1268,6 +1533,28 @@ const DataService = {
             const archivedClass = isArchived ? 'product-archived' : '';
             const assignedTo = p.assigned_to ? Utils.escapeHtml(p.assigned_to) : '—';
             
+            let imagesHtml = '<span class="no-image">—</span>';
+            if (p.images) {
+                try {
+                    let images = typeof p.images === 'string' ? JSON.parse(p.images) : p.images;
+                    if (Array.isArray(images) && images.length > 0) {
+                        const validImages = images.filter(img => img && img.startsWith('data:image'));
+                        if (validImages.length > 0) {
+                            imagesHtml = `
+                                <div class="image-thumbnails">
+                                    ${validImages.slice(0, 2).map(img => 
+                                        `<img src="${img}" class="image-thumbnail" onclick="event.stopPropagation(); ImageUploadService.viewImageFromData('${img.replace(/'/g, "\\'")}')" alt="Product image" title="Click to view">`
+                                    ).join('')}
+                                    ${validImages.length > 2 ? `<span class="more-images">+${validImages.length - 2}</span>` : ''}
+                                </div>
+                            `;
+                        }
+                    }
+                } catch(e) {
+                    console.error('Failed to parse images:', e);
+                }
+            }
+            
             return `
                 <tr class="${highlightClass} ${archivedClass}" data-product-id="${p.id}">
                     <td>
@@ -1282,6 +1569,7 @@ const DataService = {
                     <td>${Utils.getConditionBadge(p.condition)}</td>
                     <td>${stock}</td>
                     <td>${status}</td>
+                    <td class="product-images-cell">${imagesHtml}</td>
                     <td>
                         <button class="action-btn btn-edit" onclick="window.editProduct(${p.id})" ${isArchived ? 'disabled style="opacity:0.5"' : ''}>
                             <i class="fas fa-edit"></i>
@@ -1309,7 +1597,6 @@ const DataService = {
             
             const search = term.trim().toLowerCase();
             
-            // Check for category filter: category:CategoryName
             const categoryMatch = search.match(/^category:\s*(.+)$/i);
             if (categoryMatch) {
                 AppState.currentSearchTerm = search;
@@ -1318,7 +1605,6 @@ const DataService = {
                 return;
             }
             
-            // Check for building filter: building:BuildingName
             const buildingMatch = search.match(/^building:\s*(.+)$/i);
             if (buildingMatch) {
                 AppState.currentSearchTerm = search;
@@ -1327,7 +1613,6 @@ const DataService = {
                 return;
             }
             
-            // Check for assigned_to filter: assigned:PersonName
             const assignedMatch = search.match(/^assigned:\s*(.+)$/i);
             if (assignedMatch) {
                 AppState.currentSearchTerm = search;
@@ -1336,7 +1621,6 @@ const DataService = {
                 return;
             }
             
-            // Check for condition filter: condition:ConditionName
             const conditionMatch = search.match(/^condition:\s*(.+)$/i);
             if (conditionMatch) {
                 AppState.currentSearchTerm = search;
@@ -1348,7 +1632,6 @@ const DataService = {
             const isNumericSearch = /^\d+$/.test(search);
             
             if (isNumericSearch) {
-                // Handle exact ID search
                 const idNumber = parseInt(search, 10);
                 const idValidation = Utils.validateIdRange(idNumber);
                 
@@ -1387,11 +1670,8 @@ const DataService = {
                     this.renderPagination();
                 }
             } else {
-                // Store the current search term in AppState for pagination
                 AppState.currentSearchTerm = search;
                 AppState.currentSearchType = 'general';
-                
-                // Perform paginated search - NO LOADING EFFECT
                 await this.searchProductsPaginated(search, 1);
             }
         } catch (error) {
@@ -1401,10 +1681,8 @@ const DataService = {
         }
     },
     
-    // Paginated search across all fields - NO LOADING EFFECT
     async searchProductsPaginated(searchTerm, page = 1) {
         try {
-            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -1413,10 +1691,8 @@ const DataService = {
             const to = from + perPage - 1;
             const searchPattern = `%${searchTerm}%`;
             
-            // Collect all matching product IDs from all sources
             let allMatchingIds = new Set();
             
-            // Search in main product fields
             let productsQuery = supabase
                 .from(TABLES.PRODUCTS)
                 .select('id');
@@ -1439,7 +1715,6 @@ const DataService = {
             
             (productMatches || []).forEach(p => allMatchingIds.add(p.id));
             
-            // Search in categories
             const { data: matchingCategories } = await supabase
                 .from(TABLES.CATEGORIES)
                 .select('id')
@@ -1462,7 +1737,6 @@ const DataService = {
                 (categoryProductMatches || []).forEach(p => allMatchingIds.add(p.id));
             }
             
-            // Search in buildings
             const { data: matchingBuildings } = await supabase
                 .from(TABLES.BUILDINGS)
                 .select('id')
@@ -1489,10 +1763,8 @@ const DataService = {
             const totalItems = matchingIdArray.length;
             const totalPages = Math.ceil(totalItems / perPage);
             
-            // Get the IDs for the current page
             const pageIds = matchingIdArray.slice(from, to + 1);
             
-            // Fetch full product data for the current page
             let finalQuery = supabase
                 .from(TABLES.PRODUCTS)
                 .select(`*, categories:category_id(name), buildings:building_id(name)`)
@@ -1503,12 +1775,10 @@ const DataService = {
             
             if (finalError) throw finalError;
             
-            // Sort results to match the order of pageIds
             const sortedProducts = pageIds.map(id => 
                 (paginatedProducts || []).find(p => p.id === id)
             ).filter(Boolean);
             
-            // Update state
             AppState.products = sortedProducts;
             AppState.pagination.totalItems = totalItems;
             AppState.pagination.totalPages = totalPages;
@@ -1527,15 +1797,11 @@ const DataService = {
         } catch (error) {
             console.error('Paginated search failed:', error);
             throw error;
-        } finally {
-            // REMOVED: UIManager.hideLoading();
         }
     },
     
-    // Filter products by field - NO LOADING EFFECT
     async filterProductsByField(field, value) {
         try {
-            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -1593,14 +1859,11 @@ const DataService = {
             Utils.showNotification(`Filter failed: ${error.message}`, 'error');
             this.renderProductsTable([]);
             this.renderPagination();
-        } finally {
-            // REMOVED: UIManager.hideLoading();
         }
     },
     
     async filterProductsByCategory(categoryName) {
         try {
-            // REMOVED: UIManager.showLoading();
             const supabase = window.getSupabaseClient();
             if (!supabase) throw new Error('Database unavailable');
             
@@ -1635,8 +1898,6 @@ const DataService = {
             Utils.showNotification('Category filter failed: ' + error.message, 'error');
             this.renderProductsTable([]);
             this.renderPagination();
-        } finally {
-            // REMOVED: UIManager.hideLoading();
         }
     },
     
@@ -1650,14 +1911,15 @@ const DataService = {
                 data.condition = PRODUCT_CONDITIONS.DEFAULT;
             }
             
+            const imagesData = ImageUploadService.uploadedImages.map(img => img.base64);
+            
             if (id) {
-                // Update existing product
                 const idValidation = Utils.validateIdRange(id);
                 if (!idValidation.valid) throw new Error(idValidation.error);
                 
                 const { data: oldProduct } = await supabase
                     .from(TABLES.PRODUCTS)
-                    .select('stock_quantity, is_active')
+                    .select('stock_quantity, is_active, images')
                     .eq('id', id)
                     .single();
                 
@@ -1667,12 +1929,15 @@ const DataService = {
                 
                 const { error } = await supabase
                     .from(TABLES.PRODUCTS)
-                    .update({ ...data, updated_at: new Date().toISOString() })
+                    .update({ 
+                        ...data, 
+                        images: imagesData,
+                        updated_at: new Date().toISOString() 
+                    })
                     .eq('id', id);
                 
                 if (error) throw error;
                 
-                // Record stock change if quantity changed
                 if (oldProduct && oldProduct.stock_quantity !== data.stock_quantity) {
                     const diff = data.stock_quantity - oldProduct.stock_quantity;
                     if (diff !== 0) {
@@ -1688,7 +1953,6 @@ const DataService = {
                     }
                 }
             } else {
-                // Create new product
                 const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
                 if (!nextId) {
                     throw new Error(`No available IDs in range ${AppConfig.MIN_ID}-${AppConfig.MAX_ID}. Maximum capacity reached.`);
@@ -1697,6 +1961,7 @@ const DataService = {
                 const { error } = await supabase.from(TABLES.PRODUCTS).insert([{
                     id: nextId,
                     ...data,
+                    images: imagesData,
                     is_active: true,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
@@ -1704,7 +1969,6 @@ const DataService = {
                 
                 if (error) throw error;
                 
-                // Record initial stock movement
                 if (data.stock_quantity > 0) {
                     await supabase.from(TABLES.MOVEMENTS).insert([{
                         product_id: nextId,
@@ -1718,7 +1982,8 @@ const DataService = {
                 }
             }
             
-            // Reload products based on current state
+            ImageUploadService.clearImages();
+            
             if (AppState.currentSearchTerm) {
                 await this.searchProductsPaginated(AppState.currentSearchTerm, AppState.pagination.currentPage);
             } else {
@@ -1752,7 +2017,6 @@ const DataService = {
             
             if (productErr) throw productErr;
             
-            // If already archived, offer permanent deletion
             if (product.is_active === false) {
                 if (confirm(`Permanently delete "${product.name}"? This will remove all movement history. This action cannot be undone.`)) {
                     const { data: movements, error: moveCheck } = await supabase
@@ -1788,7 +2052,6 @@ const DataService = {
                 return true;
             }
             
-            // Check for movements
             const { data: movements, error: moveCheck } = await supabase
                 .from(TABLES.MOVEMENTS)
                 .select('id', { count: 'exact' })
@@ -1878,10 +2141,6 @@ const DataService = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // CATEGORIES METHODS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async loadCategories() {
         try {
             UIManager.showLoading();
@@ -1918,7 +2177,7 @@ const DataService = {
             <tr>
                 <td><strong>${Utils.escapeHtml(String(c.id))}</strong></td>
                 <td>${Utils.escapeHtml(c.name)}</td>
-                <td>${Utils.escapeHtml(c.description || '')}</td>
+		                <td>${Utils.escapeHtml(c.description || '')}</td>
                 <td>${Utils.formatDate(c.created_at)}</td>
                 <td>
                     <button class="action-btn btn-edit" onclick="window.editCategory(${c.id})">
@@ -1927,8 +2186,8 @@ const DataService = {
                     <button class="action-btn btn-delete" onclick="window.deleteCategory(${c.id})">
                         <i class="fas fa-trash"></i>
                     </button>
-                 </td>
-             </tr>
+                  </td>
+              </tr>
         `).join('');
     },
     
@@ -2008,10 +2267,6 @@ const DataService = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // BUILDINGS METHODS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async loadBuildings() {
         try {
             UIManager.showLoading();
@@ -2057,8 +2312,8 @@ const DataService = {
                     <button class="action-btn btn-delete" onclick="window.deleteBuilding(${b.id})">
                         <i class="fas fa-trash"></i>
                     </button>
-                 </td>
-             </tr>
+                  </td>
+              </tr>
         `).join('');
     },
     
@@ -2137,10 +2392,6 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // STOCK MANAGEMENT METHODS
-    // ═══════════════════════════════════════════════════════════════════════
     
     async loadStockView() {
         try {
@@ -2222,7 +2473,7 @@ const DataService = {
                 <td>${m.quantity}</td>
                 <td>${Utils.escapeHtml(m.reference || '')}</td>
                 <td>${Utils.escapeHtml(m.notes || '')}</td>
-             </tr>
+              </tr>
         `).join('');
     },
     
@@ -2318,10 +2569,6 @@ const DataService = {
             UIManager.hideLoading();
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // REPORTS METHODS
-    // ═══════════════════════════════════════════════════════════════════════
     
     async generateReport(type) {
         try {
@@ -2455,80 +2702,77 @@ const DataService = {
                     <td colspan="2" style="text-align:right;color:#e0e0e0">TOTAL ASSETS:</td>
                     <td style="color:#06d6a0;font-size:16px">${grandTotal}</td>
                 </tr>
-            </tbody></table></div>
+            </tbody>
+        </table></div>
         `;
         
         container.innerHTML = html;
     },
     
     async showBuildingAnalysis(container) {
-    const supabase = window.getSupabaseClient();
-    const { data: buildings } = await supabase
-        .from(TABLES.BUILDINGS)
-        .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
-        .order('id', { ascending: true });
-    
-    // Check which interface is active
-    const isInterface2 = AppState.currentInterface === 'interface2';
-    
-    let html = `
-        <div class="table-container">
-            <table class="report-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Building</th>
-                        <th>${isInterface2 ? 'Total Assets' : 'PC-Desktop Units'}</th>
-                        ${isInterface2 ? '<th>Categories</th>' : ''}
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    let grandTotal = 0;
-    
-    (buildings || []).forEach(b => {
-        const products = b.products || [];
-        let totalUnits = 0;
-        let categoryInfo = '';
+        const supabase = window.getSupabaseClient();
+        const { data: buildings } = await supabase
+            .from(TABLES.BUILDINGS)
+            .select(`*, products:products(id, name, stock_quantity, category_id, categories:category_id(name))`)
+            .order('id', { ascending: true });
         
-        if (isInterface2) {
-            // Interface 2: Count ALL products (office supplies & consumables)
-            totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-            grandTotal += totalUnits;
+        const isInterface2 = AppState.currentInterface === 'interface2';
+        
+        let html = `
+            <div class="table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Building</th>
+                            <th>${isInterface2 ? 'Total Assets' : 'PC-Desktop Units'}</th>
+                            ${isInterface2 ? '<th>Categories</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        let grandTotal = 0;
+        
+        (buildings || []).forEach(b => {
+            const products = b.products || [];
+            let totalUnits = 0;
+            let categoryInfo = '';
             
-            // Collect unique categories for this building
-            const categories = new Set();
-            products.forEach(p => {
-                if (p.categories?.name) {
-                    categories.add(p.categories.name);
-                }
-            });
-            categoryInfo = Array.from(categories).slice(0, 3).join(', ');
-            if (categories.size > 3) categoryInfo += ` +${categories.size - 3} more`;
-            if (categories.size === 0) categoryInfo = '—';
-        } else {
-            // Interface 1: Only PC-Desktop units (original behavior)
-            const pcDesktopProducts = products.filter(p =>
-                p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
-            );
-            totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
-            grandTotal += totalUnits;
-        }
+            if (isInterface2) {
+                totalUnits = products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+                grandTotal += totalUnits;
+                
+                const categories = new Set();
+                products.forEach(p => {
+                    if (p.categories?.name) {
+                        categories.add(p.categories.name);
+                    }
+                });
+                categoryInfo = Array.from(categories).slice(0, 3).join(', ');
+                if (categories.size > 3) categoryInfo += ` +${categories.size - 3} more`;
+                if (categories.size === 0) categoryInfo = '—';
+            } else {
+                const pcDesktopProducts = products.filter(p =>
+                    p.categories && (p.categories.name || '').toLowerCase().includes('pc-desktop')
+                );
+                totalUnits = pcDesktopProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+                grandTotal += totalUnits;
+            }
+            
+            html += `
+                <tr>
+                    <td>${b.id}</td>
+                    <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
+                    <td style="color:#06d6a0;font-weight:bold">${totalUnits.toLocaleString()}</td>
+                    ${isInterface2 ? `<td style="font-size:12px;color:#aaa">${Utils.escapeHtml(categoryInfo)}</td>` : ''}
+                </tr>
+            `;
+        });
+        
+        const totalLabel = isInterface2 ? 'TOTAL ASSETS:' : 'TOTAL PC-DESKTOP UNITS:';
         
         html += `
-            <tr>
-                <td>${b.id}</td>
-                <td><strong>${Utils.escapeHtml(b.name)}</strong></td>
-                <td style="color:#06d6a0;font-weight:bold">${totalUnits.toLocaleString()}</td>
-                ${isInterface2 ? `<td style="font-size:12px;color:#aaa">${Utils.escapeHtml(categoryInfo)}</td>` : ''}
-            </tr>
-        `;
-    });
-    
-    const totalLabel = isInterface2 ? 'TOTAL ASSETS:' : 'TOTAL PC-DESKTOP UNITS:';
-    
-    html += `
             <tr style="background:linear-gradient(135deg,#2f3850 0%,#1a1f2e 100%);font-weight:bold;border-top:2px solid #4361ee">
                 <td colspan="2" style="text-align:right;color:#e0e0e0">${totalLabel}</td>
                 <td style="color:#06d6a0;font-size:16px">${grandTotal.toLocaleString()}</td>
@@ -2539,7 +2783,7 @@ const DataService = {
     `;
     
     container.innerHTML = html;
-},
+    },
     
     async showMovementHistory(container) {
         const supabase = window.getSupabaseClient();
@@ -2625,7 +2869,6 @@ const ExcelImportService = {
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             try {
-                // Map Excel columns to product fields (supports multiple column name variations)
                 const product = {
                     name: row['Product Name'] || row['name'] || row['NAME'] || row['product_name'],
                     sku: row['SKU'] || row['sku'] || row['Code'] || row['code'],
@@ -2638,40 +2881,34 @@ const ExcelImportService = {
                     updated_at: new Date().toISOString()
                 };
                 
-                // Validate required fields
                 if (!product.name) {
                     throw new Error('Product name is required');
                 }
                 
-                // Get or create category
                 if (row['Category'] || row['category'] || row['CATEGORY']) {
                     const categoryName = row['Category'] || row['category'] || row['CATEGORY'];
                     const category = await this.getOrCreateCategory(categoryName.trim());
                     product.category_id = category.id;
                 }
                 
-                // Get or create building
                 if (row['Building'] || row['building'] || row['BUILDING']) {
                     const buildingName = row['Building'] || row['building'] || row['BUILDING'];
                     const building = await this.getOrCreateBuilding(buildingName.trim());
                     product.building_id = building.id;
                 }
                 
-                // Get next available ID
                 const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
                 if (!nextId) {
                     throw new Error('No available IDs. Maximum capacity reached.');
                 }
                 product.id = nextId;
                 
-                // Save to database
                 const { error } = await supabase
                     .from(TABLES.PRODUCTS)
                     .insert([product]);
                 
                 if (error) throw error;
                 
-                // Record initial stock movement if stock > 0
                 if (product.stock_quantity > 0) {
                     await supabase.from(TABLES.MOVEMENTS).insert([{
                         product_id: nextId,
@@ -2698,7 +2935,6 @@ const ExcelImportService = {
     async getOrCreateCategory(name) {
         const supabase = window.getSupabaseClient();
         
-        // Try to find existing category
         const { data: existing } = await supabase
             .from(TABLES.CATEGORIES)
             .select('id')
@@ -2709,7 +2945,6 @@ const ExcelImportService = {
             return existing[0];
         }
         
-        // Create new category
         const nextId = await Utils.getNextAvailableId(TABLES.CATEGORIES);
         if (!nextId) throw new Error('No available IDs for category');
         
@@ -2732,7 +2967,6 @@ const ExcelImportService = {
     async getOrCreateBuilding(name) {
         const supabase = window.getSupabaseClient();
         
-        // Try to find existing building
         const { data: existing } = await supabase
             .from(TABLES.BUILDINGS)
             .select('id')
@@ -2743,7 +2977,6 @@ const ExcelImportService = {
             return existing[0];
         }
         
-        // Create new building
         const nextId = await Utils.getNextAvailableId(TABLES.BUILDINGS);
         if (!nextId) throw new Error('No available IDs for building');
         
@@ -2791,7 +3024,6 @@ const ExcelImportService = {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Products Template');
         
-        // Set column widths
         ws['!cols'] = [
             { wch: 20 }, // Product Name
             { wch: 15 }, // SKU
@@ -2842,12 +3074,7 @@ const App = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // EVENT BINDING
-    // ═══════════════════════════════════════════════════════════════════════
-    
     bindEvents() {
-        // Authentication
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.addEventListener('submit', async e => {
@@ -2875,7 +3102,6 @@ const App = {
             });
         }
         
-        // Registration
         const regForm = document.getElementById('register-form');
         if (regForm) {
             regForm.addEventListener('submit', async e => {
@@ -2902,15 +3128,12 @@ const App = {
             });
         }
         
-        // Logout
         document.getElementById('logout-btn')?.addEventListener('click', () => AuthService.logout());
         
-        // Search - UPDATED: Only search on Enter key press
         const search = document.getElementById('product-search');
         if (search) {
             search.placeholder = "Search ID, code, name, category, building, assigned, condition... [Press Enter to search]";
             
-            // Search on Enter key
             search.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -2919,7 +3142,6 @@ const App = {
             });
         }
         
-        // Clear search
         document.getElementById('clear-search')?.addEventListener('click', async () => {
             if (search) search.value = '';
             AppState.currentSearchTerm = null;
@@ -2928,16 +3150,24 @@ const App = {
             Utils.showNotification('Filters cleared', 'info');
         });
         
-        // Toggle archived
         document.getElementById('toggle-archived')?.addEventListener('click', () => DataService.toggleShowArchived());
         
-        // Import Excel button
         const importExcelBtn = document.getElementById('import-excel');
         if (importExcelBtn) {
             importExcelBtn.addEventListener('click', () => this.showExcelImportModal());
         }
         
-        // Navigation
+        // Image upload file input
+        const imageInput = document.getElementById('product-images');
+        if (imageInput) {
+            imageInput.addEventListener('change', async (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    await ImageUploadService.addImages(Array.from(e.target.files));
+                    imageInput.value = '';
+                }
+            });
+        }
+        
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
                 const view = this.dataset.view;
@@ -2947,7 +3177,6 @@ const App = {
             });
         });
         
-        // Stock management
         document.getElementById('stock-form')?.addEventListener('submit', async e => {
             e.preventDefault();
             await this.handleStockAdjustment(e);
@@ -2963,13 +3192,11 @@ const App = {
             });
         });
         
-        // Password change
         document.getElementById('password-form')?.addEventListener('submit', async e => {
             e.preventDefault();
             await this.handlePasswordChange(e);
         });
         
-        // CRUD forms
         document.getElementById('product-form')?.addEventListener('submit', async e => {
             e.preventDefault();
             await this.handleProductSave(e);
@@ -2985,10 +3212,8 @@ const App = {
             await this.handleBuildingSave(e);
         });
         
-        // Movement filter
         document.getElementById('movement-filter')?.addEventListener('change', () => this.filterMovements());
         
-        // Modal close on background click
         window.onclick = e => {
             if (e.target.classList?.contains('modal')) {
                 e.target.classList.remove('active');
@@ -2996,9 +3221,7 @@ const App = {
             }
         };
         
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + K: Focus search
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 const si = document.getElementById('product-search');
@@ -3008,7 +3231,6 @@ const App = {
                 }
             }
             
-            // Ctrl/Cmd + Shift + I: Toggle interface
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I') {
                 e.preventDefault();
                 this.toggleInterface();
@@ -3016,12 +3238,7 @@ const App = {
         });
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // EXCEL IMPORT MODAL
-    // ═══════════════════════════════════════════════════════════════════════
-    
     showExcelImportModal() {
-        // Create modal if it doesn't exist
         let modal = document.getElementById('excel-import-modal');
         
         if (!modal) {
@@ -3075,7 +3292,6 @@ const App = {
             `;
             document.body.appendChild(modal);
             
-            // Add event listeners for the modal buttons
             const downloadBtn = document.getElementById('download-template-btn');
             if (downloadBtn) {
                 downloadBtn.addEventListener('click', () => ExcelImportService.downloadTemplate());
@@ -3087,7 +3303,6 @@ const App = {
             }
         }
         
-        // Reset modal state
         const fileInput = document.getElementById('excel-file-input');
         if (fileInput) fileInput.value = '';
         
@@ -3112,20 +3327,17 @@ const App = {
             return;
         }
         
-        // Check file extension
         const fileExt = file.name.split('.').pop().toLowerCase();
         if (!['xlsx', 'xls'].includes(fileExt)) {
             Utils.showNotification('Please select a valid Excel file (.xlsx or .xls)', 'error');
             return;
         }
         
-        // Check file size (10MB limit)
         if (file.size > 10 * 1024 * 1024) {
             Utils.showNotification('File size exceeds 10MB limit', 'error');
             return;
         }
         
-        // Show progress
         const progressDiv = document.getElementById('import-progress');
         const progressBar = document.getElementById('import-progress-bar');
         const statusText = document.getElementById('import-status');
@@ -3136,7 +3348,6 @@ const App = {
         progressBar.style.width = '30%';
         statusText.textContent = 'Reading file...';
         
-        // Disable buttons during import
         if (importBtn) importBtn.disabled = true;
         if (downloadBtn) downloadBtn.disabled = true;
         
@@ -3149,7 +3360,6 @@ const App = {
             progressBar.style.width = '100%';
             statusText.textContent = 'Import completed!';
             
-            // Show results
             const resultsDiv = document.getElementById('import-results');
             resultsDiv.style.display = 'block';
             resultsDiv.innerHTML = `
@@ -3168,7 +3378,6 @@ const App = {
                 </div>
             `;
             
-            // Reload products if any were imported
             if (results.successCount > 0) {
                 if (AppState.currentSearchTerm) {
                     await DataService.searchProductsPaginated(AppState.currentSearchTerm, 1);
@@ -3176,14 +3385,12 @@ const App = {
                     await DataService.loadProductsPaginated(1);
                 }
                 
-                // Close modal after 2.5 seconds
                 setTimeout(() => {
                     UIManager.closeModal('excel-import-modal');
                     Utils.showNotification(`Successfully imported ${results.successCount} product(s)!`, 'success');
                 }, 2500);
             } else {
                 Utils.showNotification('No products were imported. Please check your file format and data.', 'error');
-                // Re-enable buttons
                 if (importBtn) importBtn.disabled = false;
                 if (downloadBtn) downloadBtn.disabled = false;
             }
@@ -3194,15 +3401,10 @@ const App = {
             statusText.textContent = 'Import failed!';
             Utils.showNotification('Import failed: ' + error.message, 'error');
             
-            // Re-enable buttons
             if (importBtn) importBtn.disabled = false;
             if (downloadBtn) downloadBtn.disabled = false;
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // MOBILE MENU
-    // ═══════════════════════════════════════════════════════════════════════
     
     setupMobileMenu() {
         const toggleBtn = document.getElementById('mobile-menu-toggle');
@@ -3279,10 +3481,6 @@ const App = {
             });
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // INTERFACE TOGGLE
-    // ═══════════════════════════════════════════════════════════════════════
     
     setupInterfaceToggle() {
         document.querySelectorAll('.logo-text, .sidebar-header h2, .app-title, [data-app-name]').forEach(element => {
@@ -3387,10 +3585,6 @@ const App = {
         Utils.showNotification(`Switched to ${AppState.getCurrentInterfaceLabel()}`, 'info');
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // STOCK MANAGEMENT HANDLERS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     handleStockTypeChange() {
         const pid = AppState.selectedProductId;
         if (pid) {
@@ -3410,10 +3604,12 @@ const App = {
     
     handleProductSelect() {
         const id = document.getElementById('stock-product')?.value;
+        const codeInput = document.getElementById('stock-code');
         
         if (!id) {
             const info = document.getElementById('stock-info');
             if (info) info.style.display = 'none';
+            if (codeInput) codeInput.value = '';
             AppState.selectedProductId = null;
             return;
         }
@@ -3428,6 +3624,7 @@ const App = {
             
             if (info) info.style.display = 'block';
             if (current) current.textContent = `Current Stock: ${product.stock_quantity || 0}`;
+            if (codeInput) codeInput.value = product.sku || '';
             
             const active = document.querySelector('.btn-type.active');
             if (active?.dataset.type === 'OUT' && warning) {
@@ -3454,6 +3651,12 @@ const App = {
             return;
         }
         
+        const reference = document.getElementById('stock-reference')?.value?.trim();
+        if (!reference) {
+            Utils.showNotification('Please enter a reference code', 'error');
+            return;
+        }
+        
         const type = document.querySelector('.btn-type.active')?.dataset.type;
         if (!type) {
             Utils.showNotification('Please select IN or OUT', 'error');
@@ -3465,7 +3668,7 @@ const App = {
                 AppState.selectedProductId,
                 qty,
                 type,
-                document.getElementById('stock-reference')?.value?.trim(),
+                reference,
                 document.getElementById('stock-notes')?.value?.trim()
             );
             this.clearStockForm();
@@ -3489,6 +3692,9 @@ const App = {
         const select = document.getElementById('stock-product');
         if (select) select.value = '';
         
+        const codeInput = document.getElementById('stock-code');
+        if (codeInput) codeInput.value = '';
+        
         const inBtn = document.querySelector('.btn-type[data-type="IN"]');
         const outBtn = document.querySelector('.btn-type[data-type="OUT"]');
         if (inBtn) inBtn.classList.add('active');
@@ -3506,10 +3712,6 @@ const App = {
             DataService.renderMovementsTable(AppState.movements);
         }
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // NAVIGATION & VIEWS
-    // ═══════════════════════════════════════════════════════════════════════
     
     switchView(viewName) {
         UIManager.updateNavigation(viewName);
@@ -3565,10 +3767,6 @@ const App = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // PASSWORD MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async handlePasswordChange(e) {
         e.preventDefault();
         try {
@@ -3587,14 +3785,11 @@ const App = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // CRUD MODAL HANDLERS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async showProductModal(id = null) {
         const modal = document.getElementById('product-modal');
         if (!modal) return;
 
+        ImageUploadService.clearImages();
         await Promise.all([DataService.loadCategoriesSelect(), DataService.loadBuildingsSelect()]);
 
         const title = document.getElementById('modal-title');
@@ -3625,6 +3820,17 @@ const App = {
                     document.getElementById('product-stock').value = data.stock_quantity || 0;
                     document.getElementById('product-condition').value = data.condition || PRODUCT_CONDITIONS.DEFAULT;
                     document.getElementById('product-assigned').value = data.assigned_to || '';
+                    
+                    if (data.images) {
+                        try {
+                            let images = typeof data.images === 'string' ? JSON.parse(data.images) : data.images;
+                            if (Array.isArray(images) && images.length > 0) {
+                                ImageUploadService.loadImages(images);
+                            }
+                        } catch (e) {
+                            console.error('Failed to load images:', e);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error('Load product failed:', err);
@@ -3639,6 +3845,8 @@ const App = {
             document.getElementById('product-stock').value = '0';
             document.getElementById('product-condition').value = PRODUCT_CONDITIONS.DEFAULT;
             document.getElementById('product-assigned').value = '';
+            
+            ImageUploadService.clearImages();
 
             const nextId = await Utils.getNextAvailableId(TABLES.PRODUCTS);
 
@@ -3790,10 +3998,6 @@ const App = {
         }
     },
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // DELETE HANDLERS
-    // ═══════════════════════════════════════════════════════════════════════
-    
     async deleteProduct(id) {
         await DataService.deleteProduct(id);
     },
@@ -3805,10 +4009,6 @@ const App = {
     async deleteBuilding(id) {
         await DataService.deleteBuilding(id);
     },
-    
-    // ═══════════════════════════════════════════════════════════════════════
-    // REPORTS
-    // ═══════════════════════════════════════════════════════════════════════
     
     async showReport(type) {
         const results = document.getElementById('report-results');
@@ -3859,8 +4059,9 @@ window.toggleInterface = () => App.toggleInterface();
 window.goToPage = (page) => DataService.goToPage(page);
 window.changeItemsPerPage = (value) => DataService.changeItemsPerPage(value);
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => App.init());
+		
