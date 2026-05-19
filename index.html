@@ -49,10 +49,10 @@
                             Sign In
                         </button>
                     </form>
-                    
                 </div>
             </div>
         </div>
+        
         <!-- Dashboard View -->
         <div id="dashboard-view" class="view" role="main" aria-label="Dashboard">
             <div class="dashboard-container">
@@ -118,6 +118,7 @@
                         <p class="version">Version 2.0.0</p>
                     </div>
                 </aside>
+                
                 <!-- Main Content -->
                 <main id="main-content" class="main-content">
                     <!-- Dashboard Home Section -->
@@ -130,15 +131,9 @@
                             </div>
                         </div>
                         <div id="dashboard-error" class="error-message" role="alert"></div>
-                        
-                        <!-- Stats Container - Will be populated by JavaScript -->
                         <div id="stats-container"></div>
-                        
-                       
-                        
-                        
-                        
                     </section>
+                    
                     <!-- Products Section -->
                     <section id="products-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -159,9 +154,10 @@
                             </div>
                         </div>
                         <div id="products-error" class="error-message" role="alert"></div>
+                        <div id="id-range-indicator"></div>
                         <div class="search-bar">
                             <i class="fas fa-search" aria-hidden="true"></i>
-                            <input type="text" id="product-search" placeholder="Search by Name, Code... (Press Ctrl+K to focus)" aria-label="Search products">
+                            <input type="text" id="product-search" placeholder="Search by ID, Name, SKU, Category, Building... (Press Enter to search)" aria-label="Search products">
                             <button id="clear-search" class="btn-clear-search" aria-label="Clear search">
                                 <i class="fas fa-times" aria-hidden="true"></i>
                             </button>
@@ -179,6 +175,7 @@
                                         <th scope="col">Condition</th>
                                         <th scope="col">Stock</th>
                                         <th scope="col">Status</th>
+                                        <th scope="col">Images</th>
                                         <th scope="col">Actions</th>
                                     </tr>
                                 </thead>
@@ -187,6 +184,7 @@
                         </div>
                         <div id="pagination-container"></div>
                     </section>
+                    
                     <!-- Categories Section -->
                     <section id="categories-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -212,6 +210,7 @@
                             </table>
                         </div>
                     </section>
+                    
                     <!-- Buildings Section -->
                     <section id="buildings-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -237,6 +236,7 @@
                             </table>
                         </div>
                     </section>
+                    
                     <!-- Stock Section -->
                     <section id="stock-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -267,7 +267,6 @@
                                             <h4 id="current-stock">Current Stock: 0</h4>
                                         </div>
                                         <div id="stock-warning" class="warning-message" role="alert"></div>
-                                        <!-- Product Code Field - Auto-filled -->
                                         <div class="form-group">
                                             <label for="stock-code">
                                                 <i class="fas fa-barcode" aria-hidden="true"></i>
@@ -351,6 +350,7 @@
                             </div>
                         </div>
                     </section>
+                    
                     <!-- Reports Section -->
                     <section id="reports-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -383,6 +383,7 @@
                             <div id="report-content"></div>
                         </div>
                     </section>
+                    
                     <!-- Profile Section -->
                     <section id="profile-view" class="content-section" aria-labelledby="page-title">
                         <div class="content-header">
@@ -425,7 +426,8 @@
                 </main>
             </div>
         </div>
-        <!-- Product Modal -->
+        
+        <!-- Product Modal with Image Upload -->
         <div id="product-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-content">
                 <div class="modal-header">
@@ -449,6 +451,24 @@
                             <label for="product-description">Description</label>
                             <textarea id="product-description" class="form-control" rows="3"></textarea>
                         </div>
+                        
+                        <!-- Image Upload Section -->
+                        <div class="form-group">
+                            <label><i class="fas fa-image"></i> Product Images</label>
+                            <div class="image-upload-container">
+                                <input type="file" id="product-images" multiple accept="image/jpeg,image/png,image/jpg,image/gif" style="display:none">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('product-images').click()">
+                                    <i class="fas fa-upload"></i> Upload Images (Max 5)
+                                </button>
+                                <div id="image-preview-container" class="image-preview-grid"></div>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Upload up to 5 images (JPEG, PNG, GIF). Max 5MB each. Images will be compressed automatically.
+                            </small>
+                            <input type="hidden" id="product-images-data" value="">
+                        </div>
+                        
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="product-category">Category <span aria-label="required">*</span></label>
@@ -494,6 +514,29 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Image Viewer Modal -->
+        <div id="image-viewer-modal" class="modal image-viewer-modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-images"></i> Product Images</h3>
+                    <button class="close-btn" onclick="closeModal('image-viewer-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <img id="viewer-image" src="" alt="Product image">
+                    <div class="image-navigation">
+                        <button class="btn btn-secondary" onclick="window.ImageUploadService?.prevImage()">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.ImageUploadService?.nextImage()">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div id="image-counter" class="image-counter"></div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Category Modal -->
         <div id="category-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
             <div class="modal-content">
@@ -526,6 +569,7 @@
                 </form>
             </div>
         </div>
+        
         <!-- Building Modal -->
         <div id="building-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="building-modal-title">
             <div class="modal-content">
@@ -567,6 +611,7 @@
             </div>
         </div>
     </div>
+    
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
